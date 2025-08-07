@@ -6,7 +6,7 @@ import pandas as pd
 import plotly.express as px
 from datetime import datetime
 
-DATA_FILE = "entries.json"
+DATA_FILE = "data/entries.json"
 
 deutsche_monate = [
     "", "Januar", "Februar", "März", "April", "Mai", "Juni",
