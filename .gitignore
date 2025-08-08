@@ -1,1 +1,21 @@
-data/entries.json
+# Runtime data (server state)
+data/*.json
+!data/README.md
+!data/.gitkeep
+
+# Python bytecode/caches
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual envs (falls doch mal benutzt)
+.venv/
+venv/
+
+# Local config / secrets (falls später genutzt)
+.env
+.streamlit/
+
+# OS cruft
+.DS_Store
+Thumbs.db
