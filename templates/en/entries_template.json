@@ -1,0 +1,13 @@
+[
+  {
+    "name": "Name",
+    "amount": 0.01,
+    "konto": "Account name",
+    "category": "Category",
+    "cycle": "Annual",
+    "custom_cycle": null,
+    "due_month": 1,
+    "start_date": "2025-01",
+    "end_date": null
+  }
+]
