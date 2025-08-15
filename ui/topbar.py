@@ -1,11 +1,18 @@
 import streamlit as st
+from typing import Callable
 
-def render_topbar(t, unread_count: int, username: str | None):
-    st.markdown("""
+
+def render_topbar(t: Callable[[str], str], unread_count: int, username: str | None) -> None:
+    """Render the application top bar with navigation buttons."""
+
+    st.markdown(
+        """
     <style>
     div.stButton > button { padding: 0.28rem 0.55rem; border-radius: 10px; }
     </style>
-    """, unsafe_allow_html=True)
+    """,
+        unsafe_allow_html=True,
+    )
 
     topbar = st.container()
     with topbar:
