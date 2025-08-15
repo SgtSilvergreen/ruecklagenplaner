@@ -14,7 +14,7 @@ venv/
 
 # Local config / secrets (falls später genutzt)
 .env
-.streamlit/*
+.streamlit/
 
 # OS cruft
 .DS_Store
