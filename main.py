@@ -34,6 +34,7 @@ from core.storage import (
     entries_export, entries_import,
     get_accounts as storage_get_accounts,
     get_categories as storage_get_categories,
+    ensure_streamlit_config,
 )
 
 from ui.add_page import add_page
@@ -50,7 +51,7 @@ settings = load_settings()
 LANG = settings.get("language", "de")
 CURRENCY = settings.get("currency", "€")
 t = lambda key: get_text(LANG, key)
-
+ensure_streamlit_config(default_theme="light")
 st.set_page_config(page_title=t("app_title"), layout="wide")
 st.session_state.setdefault("route", "main")  # "main" | "settings" | "admin_users" | "notifications" | "add" | "edit"
 

@@ -1,4 +1,4 @@
-import json, base64
+import json, base64, os
 from datetime import datetime
 from pathlib import Path
 from typing import List, Dict, Optional, Set, Tuple, Any
@@ -190,3 +190,48 @@ def get_accounts(username: str, fkey: Optional[bytes] = None, include_empty: boo
         if v or include_empty:
             vals.add(v)
     return sorted(vals, key=str.casefold)
+
+def _is_writable(p: Path) -> bool:
+    try:
+        p.mkdir(parents=True, exist_ok=True)
+        test = p / ".write_test"
+        test.write_text("ok", encoding="utf-8")
+        test.unlink(missing_ok=True)
+        return True
+    except Exception:
+        return False
+
+def ensure_streamlit_config(default_theme: str = "light") -> Path:
+    """
+    Ensure .streamlit/config.toml exists for this instance.
+    - Prefers project-local .streamlit if writable.
+    - Falls back to user home (~/.streamlit) if project dir is read-only.
+    - Does NOT overwrite an existing config.
+    Returns the path to config.toml.
+    """
+    # 1) preferred: project-local
+    local_dir = BASE_DIR / ".streamlit"
+    # 2) fallback: user home
+    home_dir = Path(os.path.expanduser("~")) / ".streamlit"
+
+    target_dir = local_dir if _is_writable(local_dir) else home_dir
+    cfg = target_dir / "config.toml"
+
+    if not cfg.exists():
+        target_dir.mkdir(parents=True, exist_ok=True)
+        cfg.write_text(
+            f"""# Auto-generated on first run
+[theme]
+base = "{default_theme}"
+
+[server]
+# keep defaults minimal; customize via deployment (systemd/nginx)
+headless = true
+enableCORS = false
+
+[browser]
+gatherUsageStats = false
+""",
+            encoding="utf-8",
+        )
+    return cfg
