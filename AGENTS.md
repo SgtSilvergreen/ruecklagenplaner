@@ -75,7 +75,7 @@ The project is structured into logical modules ("agents") that handle data manag
 ---
 
 ### 6. **Theme & Config Agent**
-**Purpose:** Manages appearance and app configuration.  
+**Purpose:** Manages appearance and app configuration.
 **Key Files:**
 - `.streamlit/config.toml`
 - `main.py` (`inject_theme_css()`)
@@ -84,6 +84,90 @@ The project is structured into logical modules ("agents") that handle data manag
 - Store Streamlit theme preferences.
 - Inject custom CSS for styling.
 - Support theme switching from within the app.
+
+---
+
+### 7. **Configuration Agent**
+**Purpose:** Provides global paths and persistent settings.
+**Key Files:**
+- `core/config.py`
+
+**Responsibilities:**
+- Ensure data directories exist.
+- Load and save application settings and version information.
+- Offer configuration data to other agents.
+
+**Interactions:**
+- Used by Storage, Localization, and Theme & Config Agents.
+
+---
+
+### 8. **Cryptography Agent**
+**Purpose:** Supplies encryption utilities for secure data handling.
+**Key Files:**
+- `core/crypto.py`
+
+**Responsibilities:**
+- Derive keys from passwords.
+- Encrypt and decrypt byte streams.
+- Wrap and unwrap keys for storage.
+
+**Interactions:**
+- Collaborates with Authentication and Storage Agents to protect user data.
+
+---
+
+### 9. **Storage Agent**
+**Purpose:** Handles low-level persistence and backup management.
+**Key Files:**
+- `core/storage.py`
+
+**Responsibilities:**
+- Read and write user entries and notifications (optionally encrypted).
+- Manage backups and data import/export.
+
+**Interactions:**
+- Uses Configuration and Cryptography Agents; provides data for Data and Notification Agents.
+
+---
+
+### 10. **Rule Evaluation Agent**
+**Purpose:** Defines notification rule logic.
+**Key Files:**
+- `core/notify_rules.py`
+
+**Responsibilities:**
+- Provide default notification rules and parameters.
+
+**Interactions:**
+- Consumed by the Notification Agent to evaluate upcoming events.
+
+---
+
+### 11. **Utilities Agent**
+**Purpose:** Collects shared helper functions.
+**Key Files:**
+- `core/utils.py`
+
+**Responsibilities:**
+- Offer miscellaneous helpers for date handling and other tasks.
+
+**Interactions:**
+- General support module used across agents.
+
+---
+
+### 12. **Localization Agent**
+**Purpose:** Manages translations and localized labels.
+**Key Files:**
+- `i18n.py`
+
+**Responsibilities:**
+- Store language packs and month names.
+- Expose translation dictionaries to the UI and configuration modules.
+
+**Interactions:**
+- Works with UI and Configuration Agents for language switching.
 
 ---
 
@@ -96,8 +180,10 @@ The project is structured into logical modules ("agents") that handle data manag
 
 ## Orchestration
 The `main.py` file imports all agents and coordinates:
-1. **Login process** (Authentication Agent)
-2. **Data loading** (Data Agent)
-3. **UI rendering** (UI Agent)
-4. **Calculations & notifications** (Calculation & Notification Agents)
-5. **Theme injection** (Theme & Config Agent)
+1. **Configuration loading** (Configuration Agent)
+2. **Login process** (Authentication & Cryptography Agents)
+3. **Data loading** (Data & Storage Agents)
+4. **Localization setup** (Localization Agent)
+5. **UI rendering** (UI Agent)
+6. **Calculations & notifications** (Calculation, Notification & Rule Evaluation Agents)
+7. **Theme injection** (Theme & Config Agent)
