@@ -41,6 +41,7 @@ from ui.charts import saldo_chart
 from ui.dialogs import notifications_page, settings_page
 from ui.edit_page import edit_page
 from ui.topbar import render_topbar
+from ui.theme import set_plotly_theme
 
 # -------------------------------
 # Settings & i18n
@@ -281,8 +282,8 @@ if st.session_state.get("route") in ("add", "edit"):  # optional – nur auf Add
     inject_mobile_only_css()
 
 # Use Streamlit's built-in theming (no custom CSS injection)
-# theme = prefs.get("theme", "light")
-# set_plotly_theme(theme)
+theme = prefs.get("theme", "light")
+set_plotly_theme(theme)
 
 st.title(f"📊 {t('app_title')} · v{get_version()}")
 
