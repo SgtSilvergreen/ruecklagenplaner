@@ -46,6 +46,10 @@ def inject_theme_css(theme: str) -> None:
       background: var(--card) !important; color: var(--fg) !important;
       border: 1px solid var(--border) !important; border-radius: 10px !important;
     }
+    .stSelectbox div[role="listbox"], .stMultiSelect div[role="listbox"] {
+      background: var(--card) !important; color: var(--fg) !important;
+      border: 1px solid var(--border) !important; border-radius: 10px !important;
+    }
     .stSelectbox label, .stTextInput label, .stNumberInput label, .stTextArea label,
     .stDateInput label, .stTimeInput label, .stMultiSelect label { color: var(--muted) !important; }
     .stCheckbox label, .stCheckbox label span, .stRadio label, .stRadio label span { color: var(--fg) !important; }
@@ -74,6 +78,10 @@ def inject_theme_css(theme: str) -> None:
     }
     .stSelectbox div[data-baseweb="popover"], .stMultiSelect div[data-baseweb="popover"],
     .stSelectbox div[data-baseweb="menu"], .stMultiSelect div[data-baseweb="menu"] {
+      background: var(--card) !important; color: var(--fg) !important;
+      border: 1px solid var(--border) !important; border-radius: 10px !important;
+    }
+    .stSelectbox div[role="listbox"], .stMultiSelect div[role="listbox"] {
       background: var(--card) !important; color: var(--fg) !important;
       border: 1px solid var(--border) !important; border-radius: 10px !important;
     }
@@ -106,6 +114,10 @@ def inject_theme_css(theme: str) -> None:
       }
       .stSelectbox div[data-baseweb="popover"], .stMultiSelect div[data-baseweb="popover"],
       .stSelectbox div[data-baseweb="menu"], .stMultiSelect div[data-baseweb="menu"] {
+        background: var(--card) !important; color: var(--fg) !important;
+        border: 1px solid var(--border) !important; border-radius: 10px !important;
+      }
+      .stSelectbox div[role="listbox"], .stMultiSelect div[role="listbox"] {
         background: var(--card) !important; color: var(--fg) !important;
         border: 1px solid var(--border) !important; border-radius: 10px !important;
       }
