@@ -117,6 +117,8 @@ def settings_page(
         if new_theme != cur_theme:
             prefs_updater({"theme": new_theme})
             st.toast(t("saved"), icon="✅")
+            st.info("💡 Das neue Theme wird nach einem Neuladen der Seite aktiviert. "
+            "Bitte laden Sie die Seite neu (F5 oder ⟳).")
             set_streamlit_theme(new_theme)
 
         st.markdown("---")

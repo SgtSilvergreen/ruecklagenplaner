@@ -25,4 +25,3 @@ def set_streamlit_theme(theme: str) -> None:
         text += f"\n[theme]\nbase = \"{theme}\""
     cfg_path.write_text(text, encoding="utf-8")
     set_plotly_theme(theme)
-    st.rerun()
