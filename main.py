@@ -58,31 +58,40 @@ st.session_state.setdefault("route", "main")  # "main" | "settings" | "admin_use
 # Session helpers
 # -------------------------------
 def _fkey():
+    """Return the active encryption key from session state."""
     return st.session_state.get("enc_key")
 
 def current_user():
+    """Return the current user object from session state."""
     return st.session_state.get("user")
 
 def username_or_anon():
+    """Return the username or a fallback identifier for anonymous users."""
     u = current_user()
     return u["username"] if u else "_anon"
 
 def load_entries():
+    """Load persisted entries for the active user."""
     return _load_entries(username_or_anon(), _fkey())
 
 def save_entries(entries):
+    """Persist entries for the active user."""
     _save_entries(username_or_anon(), entries, _fkey())
 
 def load_notes():
+    """Load notification entries for the active user."""
     return _load_notes(username_or_anon(), _fkey())
 
 def save_notes(notes):
+    """Persist notifications for the active user."""
     _save_notes(username_or_anon(), notes, _fkey())
 
 def backup_entries(reason: str):
+    """Create a backup of entries with the given reason."""
     _backup_entries(username_or_anon(), reason, _fkey())
 
 def append_notes(new_notes):
+    """Append notifications to the existing list if any are provided."""
     if not new_notes:
         return
     notes = load_notes()
@@ -90,6 +99,7 @@ def append_notes(new_notes):
     save_notes(notes)
 
 def get_user_prefs():
+    """Retrieve stored preferences for the current user."""
     u = current_user()
     if not u:
         return {}
@@ -97,6 +107,7 @@ def get_user_prefs():
     return usr.get("prefs", {}) if usr else {}
 
 def update_user_prefs(updates: dict):
+    """Merge preference updates into the current user's stored prefs."""
     u = current_user()
     if not u:
         return
@@ -110,14 +121,17 @@ def update_user_prefs(updates: dict):
     save_users(users)
 
 def ui_accounts():
+    """Return account labels with a custom placeholder prepended."""
     base = storage_get_accounts(username_or_anon(), _fkey())
     return [t("custom_account_label")] + base
 
 def ui_categories():
+    """Return category labels with a custom placeholder prepended."""
     base = storage_get_categories(username_or_anon(), _fkey())
     return [t("custom_category_label")] + base
 
 def inject_mobile_only_css():
+    """Inject responsive CSS tweaks for small screens."""
     st.markdown("""
     <style>
     /* Greift NUR bei schmalen Bildschirmen */
@@ -143,6 +157,7 @@ def inject_mobile_only_css():
 # Login flow
 # -------------------------------
 def _sanitize_users_for_json(users_list):
+    """Convert byte values in user records to base64 strings for JSON."""
     for user in users_list:
         if not isinstance(user, dict):
             continue
@@ -159,6 +174,10 @@ def _sanitize_users_for_json(users_list):
     return users_list
 
 def ensure_login():
+    """Handle authentication and session setup.
+
+    Returns True when the user is logged in, otherwise False.
+    """
     st.session_state.setdefault("user", None)
     st.session_state.setdefault("enc_key", None)        # DataKey (bytes) -> nur Session
     st.session_state.setdefault("enc_kek_pw", None)     # KEK (bytes)   -> nur Session
@@ -333,11 +352,9 @@ from ui.dialogs import (
 
 route = st.session_state.get("route", "main")
 
-def go_main(): st.session_state["route"] = "main"
-def go_settings(): st.session_state["route"] = "settings"
-def go_notifications(): st.session_state["route"] = "notifications"
-def go_add(): st.session_state["route"] = "add"
-def go_edit(): st.session_state["route"] = "edit"
+def go_main():
+    """Return to the main route."""
+    st.session_state["route"] = "main"
 
 if route == "notifications":
     notifications_page(t, load_notes, save_notes, on_back=go_main)
