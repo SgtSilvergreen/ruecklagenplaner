@@ -66,7 +66,7 @@ I18N: Dict[str, Dict[str, str]] = {
         "all": "Alle",
 
         # Overview / History
-        "overview_header": "🗂 Übersicht der Rücklagen",
+        "overview_header": "💳 Übersicht der Rücklagen",
         "history_header": "💰 Kontostand-Verlauf mit Abbuchungen",
         "turnus": "Turnus",
         "next_due": "Nächste Fälligkeit",
@@ -227,7 +227,7 @@ I18N: Dict[str, Dict[str, str]] = {
         "all": "All",
 
         # Overview / History
-        "overview_header": "🗂 Reserve overview",
+        "overview_header": "💳 Reserve overview",
         "history_header": "💰 Balance with debits",
         "turnus": "Cycle",
         "next_due": "Next due",

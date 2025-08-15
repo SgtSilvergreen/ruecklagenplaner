@@ -40,7 +40,6 @@ from ui.add_page import add_page
 from ui.charts import saldo_chart
 from ui.dialogs import notifications_page, settings_page
 from ui.edit_page import edit_page
-from ui.theme import inject_mobile_only_css
 from ui.topbar import render_topbar
 
 # -------------------------------
