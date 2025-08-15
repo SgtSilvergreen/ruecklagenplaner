@@ -33,8 +33,20 @@ def inject_theme_css(theme: str) -> None:
     }
     .stButton>button:hover, .stDownloadButton>button:hover { filter: brightness(1.1); }
     .stTextInput input, .stNumberInput input, .stTextArea textarea,
-    .stDateInput input, .stTimeInput input,
-    .stSelectbox div[role="combobox"], .stMultiSelect div[role="combobox"] {
+    .stDateInput input, .stTimeInput input {
+      background: var(--card) !important; color: var(--fg) !important;
+      border: 1px solid var(--border) !important; border-radius: 10px !important;
+    }
+    .stSelectbox div[data-baseweb="select"], .stMultiSelect div[data-baseweb="select"] {
+      background: var(--card) !important; color: var(--fg) !important;
+      border: 1px solid var(--border) !important; border-radius: 10px !important;
+    }
+    .stSelectbox div[data-baseweb="popover"], .stMultiSelect div[data-baseweb="popover"],
+    .stSelectbox div[data-baseweb="menu"], .stMultiSelect div[data-baseweb="menu"] {
+      background: var(--card) !important; color: var(--fg) !important;
+      border: 1px solid var(--border) !important; border-radius: 10px !important;
+    }
+    .stSelectbox div[role="listbox"], .stMultiSelect div[role="listbox"] {
       background: var(--card) !important; color: var(--fg) !important;
       border: 1px solid var(--border) !important; border-radius: 10px !important;
     }
@@ -44,6 +56,7 @@ def inject_theme_css(theme: str) -> None:
     }
     .stSelectbox label, .stTextInput label, .stNumberInput label, .stTextArea label,
     .stDateInput label, .stTimeInput label, .stMultiSelect label { color: var(--muted) !important; }
+    .stCheckbox label, .stCheckbox label span, .stRadio label, .stRadio label span { color: var(--fg) !important; }
     .stCheckbox label, .stRadio label { color: var(--fg) !important; }
     .stDataFrame, .stTable { color: var(--fg) !important; }
     </style>
@@ -60,8 +73,20 @@ def inject_theme_css(theme: str) -> None:
     }
     .stButton>button:hover, .stDownloadButton>button:hover { filter: brightness(0.9); }
     .stTextInput input, .stNumberInput input, .stTextArea textarea,
-    .stDateInput input, .stTimeInput input,
-    .stSelectbox div[role="combobox"], .stMultiSelect div[role="combobox"] {
+    .stDateInput input, .stTimeInput input {
+      background: var(--card) !important; color: var(--fg) !important;
+      border: 1px solid var(--border) !important; border-radius: 10px !important;
+    }
+    .stSelectbox div[data-baseweb="select"], .stMultiSelect div[data-baseweb="select"] {
+      background: var(--card) !important; color: var(--fg) !important;
+      border: 1px solid var(--border) !important; border-radius: 10px !important;
+    }
+    .stSelectbox div[data-baseweb="popover"], .stMultiSelect div[data-baseweb="popover"],
+    .stSelectbox div[data-baseweb="menu"], .stMultiSelect div[data-baseweb="menu"] {
+      background: var(--card) !important; color: var(--fg) !important;
+      border: 1px solid var(--border) !important; border-radius: 10px !important;
+    }
+    .stSelectbox div[role="listbox"], .stMultiSelect div[role="listbox"] {
       background: var(--card) !important; color: var(--fg) !important;
       border: 1px solid var(--border) !important; border-radius: 10px !important;
     }
@@ -71,6 +96,7 @@ def inject_theme_css(theme: str) -> None:
     }
     .stSelectbox label, .stTextInput label, .stNumberInput label, .stTextArea label,
     .stDateInput label, .stTimeInput label, .stMultiSelect label { color: var(--muted) !important; }
+    .stCheckbox label, .stCheckbox label span, .stRadio label, .stRadio label span { color: var(--fg) !important; }
     .stCheckbox label, .stRadio label { color: var(--fg) !important; }
     .stDataFrame, .stTable { color: var(--fg) !important; }
     </style>
@@ -88,8 +114,20 @@ def inject_theme_css(theme: str) -> None:
       }
       .stButton>button:hover, .stDownloadButton>button:hover { filter: brightness(1.1); }
       .stTextInput input, .stNumberInput input, .stTextArea textarea,
-      .stDateInput input, .stTimeInput input,
-      .stSelectbox div[role="combobox"], .stMultiSelect div[role="combobox"] {
+      .stDateInput input, .stTimeInput input {
+        background: var(--card) !important; color: var(--fg) !important;
+        border: 1px solid var(--border) !important; border-radius: 10px !important;
+      }
+      .stSelectbox div[data-baseweb="select"], .stMultiSelect div[data-baseweb="select"] {
+        background: var(--card) !important; color: var(--fg) !important;
+        border: 1px solid var(--border) !important; border-radius: 10px !important;
+      }
+      .stSelectbox div[data-baseweb="popover"], .stMultiSelect div[data-baseweb="popover"],
+      .stSelectbox div[data-baseweb="menu"], .stMultiSelect div[data-baseweb="menu"] {
+        background: var(--card) !important; color: var(--fg) !important;
+        border: 1px solid var(--border) !important; border-radius: 10px !important;
+      }
+      .stSelectbox div[role="listbox"], .stMultiSelect div[role="listbox"] {
         background: var(--card) !important; color: var(--fg) !important;
         border: 1px solid var(--border) !important; border-radius: 10px !important;
       }
