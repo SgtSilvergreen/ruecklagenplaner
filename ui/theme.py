@@ -38,9 +38,13 @@ def inject_theme_css(theme: str) -> None:
       background: var(--card) !important; color: var(--fg) !important;
       border: 1px solid var(--border) !important; border-radius: 10px !important;
     }
+    .stSelectbox div[role="listbox"], .stMultiSelect div[role="listbox"] {
+      background: var(--card) !important; color: var(--fg) !important;
+      border: 1px solid var(--border) !important; border-radius: 10px !important;
+    }
     .stSelectbox label, .stTextInput label, .stNumberInput label, .stTextArea label,
     .stDateInput label, .stTimeInput label, .stMultiSelect label { color: var(--muted) !important; }
-    .stCheckbox, .stRadio { color: var(--fg) !important; }
+    .stCheckbox label, .stRadio label { color: var(--fg) !important; }
     .stDataFrame, .stTable { color: var(--fg) !important; }
     </style>
     """
@@ -61,9 +65,13 @@ def inject_theme_css(theme: str) -> None:
       background: var(--card) !important; color: var(--fg) !important;
       border: 1px solid var(--border) !important; border-radius: 10px !important;
     }
+    .stSelectbox div[role="listbox"], .stMultiSelect div[role="listbox"] {
+      background: var(--card) !important; color: var(--fg) !important;
+      border: 1px solid var(--border) !important; border-radius: 10px !important;
+    }
     .stSelectbox label, .stTextInput label, .stNumberInput label, .stTextArea label,
     .stDateInput label, .stTimeInput label, .stMultiSelect label { color: var(--muted) !important; }
-    .stCheckbox, .stRadio { color: var(--fg) !important; }
+    .stCheckbox label, .stRadio label { color: var(--fg) !important; }
     .stDataFrame, .stTable { color: var(--fg) !important; }
     </style>
     """
@@ -85,9 +93,13 @@ def inject_theme_css(theme: str) -> None:
         background: var(--card) !important; color: var(--fg) !important;
         border: 1px solid var(--border) !important; border-radius: 10px !important;
       }
+      .stSelectbox div[role="listbox"], .stMultiSelect div[role="listbox"] {
+        background: var(--card) !important; color: var(--fg) !important;
+        border: 1px solid var(--border) !important; border-radius: 10px !important;
+      }
       .stSelectbox label, .stTextInput label, .stNumberInput label, .stTextArea label,
       .stDateInput label, .stTimeInput label, .stMultiSelect label { color: var(--muted) !important; }
-      .stCheckbox, .stRadio { color: var(--fg) !important; }
+      .stCheckbox label, .stRadio label { color: var(--fg) !important; }
       .stDataFrame, .stTable { color: var(--fg) !important; }
     }
     </style>
