@@ -14,7 +14,9 @@ def add_page(
     on_back: Callable[[], None],
     known_accounts: Optional[List[str]] = None,
     known_categories: Optional[List[str]] = None,
-):
+) -> None:
+    """Render the page for adding a new entry."""
+
     _section_header_with_back(t("add_title"), t, on_back, key="add_top")
 
     today = st.session_state.get("_today_cache")
@@ -121,7 +123,8 @@ def add_page(
 
 
 # ------- Helper -------
-def _section_header_with_back(title: str, t, on_back, key: str):
+def _section_header_with_back(title: str, t: Callable[[str], str], on_back: Callable[[], None], key: str) -> None:
+    """Render a section header with a back button on the right."""
     c1, c2 = st.columns([6, 1])
     with c1:
         st.subheader(title)
@@ -130,23 +133,33 @@ def _section_header_with_back(title: str, t, on_back, key: str):
             on_back()
             st.rerun()
 
-def _bottom_right_back(t, on_back, key: str):
+
+def _bottom_right_back(t: Callable[[str], str], on_back: Callable[[], None], key: str) -> None:
+    """Render a back button aligned to the bottom right."""
     c1, c2 = st.columns([5, 1])
     with c2:
         if st.button("⬅️ " + t("back"), key=f"back_bottom_{key}", use_container_width=True):
             on_back()
             st.rerun()
 
-def _is_custom_label(label: str, lang: str, t) -> bool:
+
+def _is_custom_label(label: str, lang: str, t: Callable[[str], str]) -> bool:
+    """Return True if the cycle label represents a custom value."""
     return label == t("custom_cycle_label") or label in ("Benutzerdefiniert", "Custom")
 
-def _is_custom_account(label: str, lang: str, t) -> bool:
+
+def _is_custom_account(label: str, lang: str, t: Callable[[str], str]) -> bool:
+    """Return True if the account label represents a custom account."""
     return label == t("custom_account_label") or label in ("Neues Konto", "New account")
 
-def _is_custom_category(label: str, lang: str, t) -> bool:
+
+def _is_custom_category(label: str, lang: str, t: Callable[[str], str]) -> bool:
+    """Return True if the category label represents a custom category."""
     return label == t("custom_category_label") or label in ("Neue Kategorie", "New category")
 
+
 def _pref_idx(labels: List[str], default_label: str) -> int:
+    """Return the index of the default label or 0 if not found."""
     try:
         return labels.index(default_label)
     except ValueError:
