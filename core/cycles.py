@@ -1,4 +1,7 @@
 from i18n import CYCLES, TURNUS_LABELS_EN
+from datetime import datetime
+from typing import Optional
+from .calc import get_next_due_date
 
 def get_turnus_mapping(lang: str) -> dict:
     return CYCLES.get(lang, CYCLES["de"]).copy()
@@ -23,3 +26,11 @@ def turnus_label(entry: dict, lang: str, custom_label: str) -> str:
         return f"{entry.get('cycle')} ({months} Mon.)" if months else entry.get('cycle', '-')
     display = TURNUS_LABELS_EN.get(entry.get('cycle'), entry.get('cycle', '-'))
     return f"{display} ({months} mo)" if months else display
+
+def months_to_next_occurrence(entry: dict, lang: str) -> Optional[int]:
+    next_due = get_next_due_date(entry, lang)
+    if not next_due:
+        return None
+    today = datetime.now().replace(day=1)
+    diff_months = (next_due.year - today.year) * 12 + (next_due.month - today.month)
+    return max(0, diff_months)

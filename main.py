@@ -1,15 +1,28 @@
 import json, os, base64, uuid
-from datetime import datetime
-from functools import partial
-from core.demo import login_as_demo_and_seed, DEMO_USERNAME
-
+import plotly.io as pio
 import streamlit as st
 
+from datetime import datetime
+from functools import partial
 from i18n import get_text
+
 from core.config import load_settings, save_settings, get_version
 from core.auth import (
     load_users, save_users, add_user, set_user_role, set_user_active,
     set_user_password, delete_user, find_user, verify_password, make_hash, get_user_enc_params
+)
+from core.calc import (
+    calculate_monthly_saving_and_progress,
+    calculate_saldo_over_time,
+    get_next_due_text,
+)
+from core.crypto import derive_fernet_key, wrap_key, unwrap_key
+from core.cycles import get_turnus_mapping, turnus_label
+from core.demo import login_as_demo_and_seed, DEMO_USERNAME
+from core.notify_rules import DEFAULT_RULES
+from core.notify import (
+    notify_on_add, notify_on_update, notify_on_delete,
+    ensure_monthly_notifications, evaluate_events
 )
 from core.storage import (
     load_entries as _load_entries,
@@ -18,25 +31,17 @@ from core.storage import (
     save_notifications as _save_notes,
     backup_entries as _backup_entries,
     rewrap_user_data, wipe_user,
-    entries_export, entries_import
+    entries_export, entries_import,
+    get_accounts as storage_get_accounts,
+    get_categories as storage_get_categories,
 )
-from core.cycles import get_turnus_mapping, turnus_label
-from core.calc import (
-    calculate_monthly_saving_and_progress,
-    calculate_saldo_over_time,
-    get_next_due_text,
-)
-from core.notify import (
-    notify_on_add, notify_on_update, notify_on_delete,
-    ensure_monthly_notifications,
-)
-from ui.topbar import render_topbar
-from ui.dialogs import notifications_page, settings_page
-from ui.add_page import add_page
-from ui.edit_page import edit_page
-from ui.charts import saldo_chart
-from core.crypto import derive_fernet_key
 
+from ui.add_page import add_page
+from ui.charts import saldo_chart
+from ui.dialogs import notifications_page, settings_page
+from ui.edit_page import edit_page
+from ui.topbar import render_topbar
+from ui.theme import set_plotly_theme
 
 # -------------------------------
 # Settings & i18n
@@ -53,31 +58,40 @@ st.session_state.setdefault("route", "main")  # "main" | "settings" | "admin_use
 # Session helpers
 # -------------------------------
 def _fkey():
+    """Return the active encryption key from session state."""
     return st.session_state.get("enc_key")
 
 def current_user():
+    """Return the current user object from session state."""
     return st.session_state.get("user")
 
 def username_or_anon():
+    """Return the username or a fallback identifier for anonymous users."""
     u = current_user()
     return u["username"] if u else "_anon"
 
 def load_entries():
+    """Load persisted entries for the active user."""
     return _load_entries(username_or_anon(), _fkey())
 
 def save_entries(entries):
+    """Persist entries for the active user."""
     _save_entries(username_or_anon(), entries, _fkey())
 
 def load_notes():
+    """Load notification entries for the active user."""
     return _load_notes(username_or_anon(), _fkey())
 
 def save_notes(notes):
+    """Persist notifications for the active user."""
     _save_notes(username_or_anon(), notes, _fkey())
 
 def backup_entries(reason: str):
+    """Create a backup of entries with the given reason."""
     _backup_entries(username_or_anon(), reason, _fkey())
 
 def append_notes(new_notes):
+    """Append notifications to the existing list if any are provided."""
     if not new_notes:
         return
     notes = load_notes()
@@ -85,6 +99,7 @@ def append_notes(new_notes):
     save_notes(notes)
 
 def get_user_prefs():
+    """Retrieve stored preferences for the current user."""
     u = current_user()
     if not u:
         return {}
@@ -92,6 +107,7 @@ def get_user_prefs():
     return usr.get("prefs", {}) if usr else {}
 
 def update_user_prefs(updates: dict):
+    """Merge preference updates into the current user's stored prefs."""
     u = current_user()
     if not u:
         return
@@ -104,15 +120,70 @@ def update_user_prefs(updates: dict):
             break
     save_users(users)
 
+def ui_accounts():
+    """Return account labels with a custom placeholder prepended."""
+    base = storage_get_accounts(username_or_anon(), _fkey())
+    return [t("custom_account_label")] + base
+
+def ui_categories():
+    """Return category labels with a custom placeholder prepended."""
+    base = storage_get_categories(username_or_anon(), _fkey())
+    return [t("custom_category_label")] + base
+
+def inject_mobile_only_css():
+    """Inject responsive CSS tweaks for small screens."""
+    st.markdown("""
+    <style>
+    /* Greift NUR bei schmalen Bildschirmen */
+    @media (max-width: 768px){
+      /* Gesamtlayout kompakter, aber Desktop bleibt unberührt */
+      .block-container { max-width: 96vw; padding: .5rem .5rem 2rem; }
+
+      /* Touch-freundliche Ziele */
+      .stButton>button, .stDownloadButton>button { width: 100% !important; min-height: 40px; border-radius: 12px; }
+
+      /* Inputs ein bisschen größer/luftiger */
+      .stTextInput>div>div>input,
+      .stNumberInput input,
+      .stSelectbox [data-baseweb="select"] { min-height: 40px; }
+
+      /* Charts/Tabellen nicht überlaufen lassen */
+      .stPlotlyChart, .stAltairChart, .stVegaLiteChart { max-width: 100%; }
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
 # -------------------------------
 # Login flow
 # -------------------------------
+def _sanitize_users_for_json(users_list):
+    """Convert byte values in user records to base64 strings for JSON."""
+    for user in users_list:
+        if not isinstance(user, dict):
+            continue
+        # Top-Level-Felder
+        for k, v in list(user.items()):
+            if isinstance(v, (bytes, bytearray)):
+                user[k] = base64.b64encode(v).decode("ascii")
+        # enc-Subtree
+        enc = user.get("enc")
+        if isinstance(enc, dict):
+            for k, v in list(enc.items()):
+                if isinstance(v, (bytes, bytearray)):
+                    enc[k] = base64.b64encode(v).decode("ascii")
+    return users_list
+
 def ensure_login():
+    """Handle authentication and session setup.
+
+    Returns True when the user is logged in, otherwise False.
+    """
     st.session_state.setdefault("user", None)
-    st.session_state.setdefault("enc_key", None)
+    st.session_state.setdefault("enc_key", None)        # DataKey (bytes) -> nur Session
+    st.session_state.setdefault("enc_kek_pw", None)     # KEK (bytes)   -> nur Session
     users = load_users()
 
-    # Ersteinrichtung: ersten Admin anlegen
+    # Ersteinrichtung
     if not users:
         st.title(t("first_setup"))
         with st.form("bootstrap_admin"):
@@ -121,7 +192,6 @@ def ensure_login():
             pw2 = st.text_input(t("password_repeat"), type="password")
             ok = st.form_submit_button(t("create_admin"))
         if ok and username and pw1 and pw1 == pw2:
-            # add_user sorgt automatisch für enc.salt / enc.iters
             add_user(username, pw1, role="admin")
             st.success(t("admin_created_login"))
             st.rerun()
@@ -131,7 +201,7 @@ def ensure_login():
     if st.session_state["user"]:
         return True
 
-    # Login
+    # Login-Form
     st.title(t("login_title"))
     with st.form("login_form"):
         username = st.text_input(t("login_username"))
@@ -141,45 +211,71 @@ def ensure_login():
     if ok:
         u = find_user(username)
         if u and u.get("active") and verify_password(pw, u.get("pw_hash", "")):
-            # Letzten Login speichern
-            u["last_login"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+            # users laden & referenz auf diesen User
             uu = load_users()
+            uref = None
             for x in uu:
                 if x.get("username") == u["username"]:
-                    x["last_login"] = u["last_login"]
+                    uref = x
                     break
+            if not uref:
+                st.error(t("login_failed"))
+                return False
 
-            # Verschlüsselungsparameter prüfen / ggf. hinzufügen
-            params = get_user_enc_params(u["username"])
+            mutated = False
+
+            # last_login als STRING
+            uref["last_login"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            mutated = True
+
+            # enc-Parameter prüfen/erzeugen (nur JSON-fähige Werte!)
+            params = get_user_enc_params(u["username"])  # -> {"salt": bytes, "iters": int} ODER None
             if not params:
-                for x in uu:
-                    if x.get("username") == u["username"]:
-                        x["enc"] = {
-                            "salt": base64.b64encode(os.urandom(16)).decode("ascii"),
-                            "iters": 200_000,
-                        }
-                        params = {
-                            "salt": base64.b64decode(x["enc"]["salt"]),
-                            "iters": 200_000,
-                        }
-                        break
-            save_users(uu)
+                import os, base64 as _b64
+                uenc = uref.setdefault("enc", {})
+                # stelle sicher: salt als base64-STRING, iters als INT
+                uenc["salt"]  = _b64.b64encode(os.urandom(16)).decode("ascii")
+                uenc["iters"] = 200_000
+                mutated = True
+                # runtime params als bytes:
+                params = {"salt": _b64.b64decode(uenc["salt"]), "iters": uenc["iters"]}
 
-            # Fernet-Key aus Passwort ableiten
-            if params:
-                st.session_state["enc_key"] = derive_fernet_key(pw, params["salt"], params["iters"])
-            else:
-                st.session_state["enc_key"] = None
+            # KEK (bytes) NUR Runtime
+            kek = derive_fernet_key(pw, params["salt"], params["iters"])
+            st.session_state["enc_kek_pw"] = kek
 
+            # wrapped_data_key (STRING) anlegen, falls fehlt
+            uenc = uref.setdefault("enc", {})
+            if not isinstance(uenc.get("wrapped_data_key"), str):
+                # Migration: DataKey = kek (bytes), speichern NUR den Wrap als Base64-String
+                uenc["wrapped_data_key"] = wrap_key(kek, kek)  # -> str
+                mutated = True
+
+            # DataKey (bytes) für Session
+            try:
+                data_key = unwrap_key(uenc["wrapped_data_key"], kek)
+            except Exception:
+                data_key = kek  # Fallback
+
+            # Vor dem Speichern ALLES json-safe machen
+            if mutated:
+                _sanitize_users_for_json(uu)
+                save_users(uu)
+
+            # Session setzen
+            st.session_state["enc_key"] = data_key
             st.session_state["user"] = {"username": u["username"], "role": u.get("role", "user")}
             st.rerun()
         else:
             st.error(t("login_failed"))
-            # --- Demo-Login ohne Passwort ---
+
+    # Demo-Login
     if st.button(t("login_demo"), type="secondary", use_container_width=True):
         demo_username, fkey = login_as_demo_and_seed()
-        st.session_state["user"] = {"username": demo_username, "role": "user"}  # Demo ist normaler user
+        st.session_state["user"] = {"username": demo_username, "role": "user"}
         st.session_state["enc_key"] = fkey
+        st.session_state["enc_kek_pw"] = None
         st.rerun()
     return False
 
@@ -201,6 +297,13 @@ t = lambda key: get_text(LANG, key)
 TURNUS_MAPPING = get_turnus_mapping(LANG)
 TURNUS_LABELS = list(TURNUS_MAPPING.keys())
 
+if st.session_state.get("route") in ("add", "edit"):  # optional – nur auf Add/Edit
+    inject_mobile_only_css()
+
+# Use Streamlit's built-in theming (no custom CSS injection)
+theme = prefs.get("theme", "light")
+set_plotly_theme(theme)
+
 st.title(f"📊 {t('app_title')} · v{get_version()}")
 
 # Topbar
@@ -212,6 +315,9 @@ u = current_user()
 render_topbar(t, unread, u["username"] if u else None)
 
 # Monatliche Notifications
+new_notes = evaluate_events(load_entries(), DEFAULT_RULES, LANG)
+append_notes(new_notes)
+
 try:
     ym_now = datetime.now().strftime("%Y-%m")
     if settings.get("last_notif_month") != ym_now:
@@ -246,11 +352,9 @@ from ui.dialogs import (
 
 route = st.session_state.get("route", "main")
 
-def go_main(): st.session_state["route"] = "main"
-def go_settings(): st.session_state["route"] = "settings"
-def go_notifications(): st.session_state["route"] = "notifications"
-def go_add(): st.session_state["route"] = "add"
-def go_edit(): st.session_state["route"] = "edit"
+def go_main():
+    """Return to the main route."""
+    st.session_state["route"] = "main"
 
 if route == "notifications":
     notifications_page(t, load_notes, save_notes, on_back=go_main)
@@ -307,7 +411,7 @@ elif route == "add":
     def _on_add(e):
         es = load_entries(); es.append(e); save_entries(es)
         notify_on_add(append_notes, e, CURRENCY, LANG, t)
-    add_page(t, CURRENCY, LANG, TURNUS_LABELS, _on_add, on_back=go_main)
+    add_page(t, CURRENCY, LANG, TURNUS_LABELS, _on_add, on_back=go_main, known_accounts=ui_accounts(), known_categories=ui_categories())
     st.stop()
 
 elif route == "edit":
@@ -323,7 +427,7 @@ elif route == "edit":
             if old:
                 prefs_local = get_user_prefs()
                 notify_on_update(append_notes, old, updated, CURRENCY, LANG, t, prefs_local)
-        edit_page(t, CURRENCY, LANG, TURNUS_LABELS, entry, _on_save, on_back=go_main)
+        edit_page(t, CURRENCY, LANG, TURNUS_LABELS, entry, _on_save, on_back=go_main, known_accounts=ui_accounts(), known_categories=ui_categories())
         st.stop()
     else:
         go_main()
@@ -420,4 +524,4 @@ with tab2:
 
     filtered2 = [e for e in entries if _m(e.get("category", ""), sel_cat) and _m(e.get("konto", ""), sel_acc)]
     df = calculate_saldo_over_time(filtered2, LANG)
-    saldo_chart(df, LANG, CURRENCY, t("history_header"))
+    saldo_chart(df, LANG, CURRENCY, t("history_header"), t=t)

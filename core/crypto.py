@@ -2,6 +2,7 @@ from __future__ import annotations
 import base64, os
 from typing import Tuple
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from cryptography.hazmat.primitives import hashes
 from cryptography.fernet import Fernet
 
@@ -31,3 +32,14 @@ def encrypt_bytes(plaintext: bytes, fkey: bytes) -> bytes:
 
 def decrypt_bytes(token: bytes, fkey: bytes) -> bytes:
     return make_fernet(fkey).decrypt(token)
+
+def wrap_key(data_key: bytes, kek: bytes) -> bytes:
+    aes = AESGCM(kek[:32])
+    nonce = os.urandom(12)
+    ct = aes.encrypt(nonce, data_key, None)
+    return nonce + ct
+
+def unwrap_key(wrapped: bytes, kek: bytes) -> bytes:
+    aes = AESGCM(kek[:32])
+    nonce, ct = wrapped[:12], wrapped[12:]
+    return aes.decrypt(nonce, ct, None)

@@ -1,11 +1,12 @@
 import json, base64
 from datetime import datetime
 from pathlib import Path
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Set, Tuple, Any
 from .config import BASE_DIR
 from .crypto import encrypt_bytes, decrypt_bytes
 
 def _user_dir(username: str) -> Path:
+    """Return/Create absolute data directory for a given user."""
     p = BASE_DIR / "data" / "users" / username
     p.mkdir(parents=True, exist_ok=True)
     return p
@@ -20,7 +21,10 @@ def user_notifications_path(username: str) -> Path:
 ENC_MARK = "__rp_enc__"
 ENC_KIND = "fernet"
 
-def _load_json_or_enc(p: Path, fkey: Optional[bytes]):
+def _load_json_or_enc(p: Path, fkey: Optional[bytes]) -> Tuple[Optional[Any], bool]:
+    """Load JSON file that may be plaintext or encrypted.
+    Returns (payload, was_encrypted).
+    """
     if not p.exists():
         return None, False  # (payload, encrypted?)
     raw = p.read_bytes()
@@ -36,14 +40,15 @@ def _load_json_or_enc(p: Path, fkey: Optional[bytes]):
         # plaintext payload
         return data, False
     except Exception:
-        # Not JSON? treat as ciphertext blob
-        if not fkey:
-            raise
-        dec = decrypt_bytes(raw, fkey)
-        payload = json.loads(dec.decode("utf-8"))
-        return payload, True
+         # Not JSON? treat as ciphertext blob
+         if not fkey:
+             raise
+         dec = decrypt_bytes(raw, fkey)
+         payload = json.loads(dec.decode("utf-8"))
+         return payload, True
 
-def _dump_json_enc(payload, fkey: Optional[bytes]) -> bytes:
+def _dump_json_enc(payload: Any, fkey: Optional[bytes]) -> bytes:
+    """Dump payload to bytes, optionally encrypted with Fernet."""
     if not fkey:
         return json.dumps(payload, ensure_ascii=False, indent=2).encode("utf-8")
     ct = encrypt_bytes(json.dumps(payload, ensure_ascii=False, indent=2).encode("utf-8"), fkey)
@@ -57,7 +62,7 @@ def load_entries(username: str, fkey: Optional[bytes] = None) -> List[Dict]:
     if payload is None: return []
     return payload if isinstance(payload, list) else []
 
-def save_entries(username: str, entries: List[Dict], fkey: Optional[bytes] = None):
+def save_entries(username: str, entries: List[Dict], fkey: Optional[bytes] = None) -> None:
     p = user_entries_path(username)
     tmp = p.with_suffix(p.suffix + ".tmp")
     tmp.write_bytes(_dump_json_enc(entries, fkey))
@@ -69,13 +74,13 @@ def load_notifications(username: str, fkey: Optional[bytes] = None) -> List[Dict
     if payload is None: return []
     return payload if isinstance(payload, list) else []
 
-def save_notifications(username: str, notes: List[Dict], fkey: Optional[bytes] = None):
+def save_notifications(username: str, notes: List[Dict], fkey: Optional[bytes] = None) -> None:
     p = user_notifications_path(username)
     tmp = p.with_suffix(p.suffix + ".tmp")
     tmp.write_bytes(_dump_json_enc(notes, fkey))
     tmp.replace(p)
 
-def backup_entries(username: str, reason: str, fkey: Optional[bytes] = None):
+def backup_entries(username: str, reason: str, fkey: Optional[bytes] = None) -> None:
     try:
         bdir = _user_dir(username) / "backups"
         bdir.mkdir(parents=True, exist_ok=True)
@@ -86,10 +91,12 @@ def backup_entries(username: str, reason: str, fkey: Optional[bytes] = None):
             payload, _ = _load_json_or_enc(src, fkey)
             data = _dump_json_enc(payload or [], fkey)
             (bdir / f"entries_{ts}_{reason}.json").write_bytes(data)
-    except Exception:
-        pass
+    except Exception as ex:
+        # best-effort: don't crash the app on backup failure
+        #         # (could plug in a logger here)
+        _ = ex
 
-def wipe_user(username: str):
+def wipe_user(username: str) -> None:
     save_entries(username, [], None)
     save_notifications(username, [], None)
     bdir = _user_dir(username) / "backups"
@@ -98,7 +105,7 @@ def wipe_user(username: str):
             try: fn.unlink()
             except Exception: pass
 
-def rewrap_user_data(username: str, old_fkey: Optional[bytes], new_fkey: bytes):
+def rewrap_user_data(username: str, old_fkey: Optional[bytes], new_fkey: bytes) -> None:
     try:
         # entries
         entries = load_entries(username, old_fkey)
@@ -116,13 +123,13 @@ def rewrap_user_data(username: str, old_fkey: Optional[bytes], new_fkey: bytes):
                     fp.write_bytes(_dump_json_enc(payload, new_fkey))
                 except Exception:
                     continue
-    except Exception:
-        pass
+    except Exception as ex:
+        _ = ex
 
 def entries_export(username: str, fkey: bytes | None = None) -> list[dict]:
     return load_entries(username, fkey)
 
-def entries_import(username: str, data, replace: bool, fkey: bytes | None = None) -> bool:
+def entries_import(username: str, data: Any, replace: bool, fkey: bytes | None = None) -> bool:
     try:
         # 1) Eingabe ggf. entschlüsseln
         if isinstance(data, dict) and data.get(ENC_MARK) == ENC_KIND:
@@ -159,3 +166,27 @@ def entries_import(username: str, data, replace: bool, fkey: bytes | None = None
         return True
     except Exception:
         return False
+    
+def get_categories(username: str, fkey: Optional[bytes] = None, include_empty: bool = False) -> list[str]:
+    entries = load_entries(username, fkey)
+    vals: Set[str] = set()
+    for e in entries:
+        v = (e or {}).get("category", "")
+        if v is None:
+            continue
+        v = str(v).strip()
+        if v or include_empty:
+            vals.add(v)
+    return sorted(vals, key=str.casefold)
+
+def get_accounts(username: str, fkey: Optional[bytes] = None, include_empty: bool = False) -> list[str]:
+    entries = load_entries(username, fkey)
+    vals: Set[str] = set()
+    for e in entries:
+        v = (e or {}).get("konto", "")
+        if v is None:
+            continue
+        v = str(v).strip()
+        if v or include_empty:
+            vals.add(v)
+    return sorted(vals, key=str.casefold)

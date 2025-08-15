@@ -46,6 +46,7 @@ I18N: Dict[str, Dict[str, str]] = {
         "app_title": "Rücklagenplaner",
         "tab_overview": "Übersicht",
         "tab_history": "Kontoverlauf",
+        "chart_balance_label": "Kontostand",
 
         # Topbar / Buttons
         "btn_add_entry": "Eintrag hinzufügen",
@@ -65,7 +66,7 @@ I18N: Dict[str, Dict[str, str]] = {
         "all": "Alle",
 
         # Overview / History
-        "overview_header": "🗂 Übersicht der Rücklagen",
+        "overview_header": "💳 Übersicht der Rücklagen",
         "history_header": "💰 Kontostand-Verlauf mit Abbuchungen",
         "turnus": "Turnus",
         "next_due": "Nächste Fälligkeit",
@@ -176,8 +177,21 @@ I18N: Dict[str, Dict[str, str]] = {
         "own_value": "Eigene Eingabe",
         "enter_value": "Wert eingeben",
         "custom_cycle_label": "Benutzerdefiniert",
+        "custom_account_label": "Neues Konto",
+        "custom_category_label": "Neue Kategorie",
         "change": "Ändern",
         "select_user": "Benutzer auswählen",
+        "annual_label": "Jährlich",
+
+        # Theme
+        "theme": "Theme",
+        "theme_light": "Hell",
+        "theme_dark": "Dunkel",
+        "theme_system": "System (automatisch)",
+        "password_change_unavailable": "Passwortänderung nicht verfügbar.",
+        "please_confirm": "Bitte bestätigen.",
+        "new_value_suffix": "(neu)",
+        "yaxis_balance_label": "Kontostand",
 
         # Notification templates
         "notif_new_entry": "Neuer Eintrag: {name}. Monatsrate: {rate}. Betrag: {amount}. Nächste Fälligkeit: {due}.",
@@ -193,6 +207,7 @@ I18N: Dict[str, Dict[str, str]] = {
         "app_title": "Savings Planner",
         "tab_overview": "Overview",
         "tab_history": "Balance over time",
+        "chart_balance_label": "Balance",
 
         # Topbar / Buttons
         "btn_add_entry": "Add entry",
@@ -212,7 +227,7 @@ I18N: Dict[str, Dict[str, str]] = {
         "all": "All",
 
         # Overview / History
-        "overview_header": "🗂 Reserve overview",
+        "overview_header": "💳 Reserve overview",
         "history_header": "💰 Balance with debits",
         "turnus": "Cycle",
         "next_due": "Next due",
@@ -269,7 +284,6 @@ I18N: Dict[str, Dict[str, str]] = {
         "role": "Role",
         "active": "Active",
         "new_password_optional": "New password (optional)",
-        "actions": "Actions",
         "save": "Save",
         "delete": "Delete",
         "create_user": "Create new user",
@@ -277,7 +291,6 @@ I18N: Dict[str, Dict[str, str]] = {
         "create": "Create",
         "user_created": "User created.",
         "user_exists": "User already exists.",
-        "actions": "Actions",
         "at_least_one_admin": "At least one admin must remain",
         "cannot_delete_self": "You cannot delete yourself",
         "open_user_mgmt": "Open user management",
@@ -324,8 +337,22 @@ I18N: Dict[str, Dict[str, str]] = {
         "own_value": "Custom input",
         "enter_value": "Enter value",
         "custom_cycle_label": "Custom",
+        "custom_account_label": "New account",
+        "custom_category_label": "New category",
         "change": "Change",
         "select_user": "Select user",
+        "annual_label": "Annual",
+
+        # Theme
+        "theme": "Theme",
+        "theme_light": "Light",
+        "theme_dark": "Dark",
+        "theme_system": "System (auto)",
+        "actions": "Actions",
+        "password_change_unavailable": "Password change not available.",
+        "please_confirm": "Please confirm.",
+        "new_value_suffix": "(new)",
+        "yaxis_balance_label": "Balance",
 
         # Notification templates
         "notif_new_entry": "New entry: {name}. Monthly rate: {rate}. Amount: {amount}. Next due: {due}.",
