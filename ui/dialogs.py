@@ -102,7 +102,6 @@ def settings_page(
         theme_labels = {
             "light": t("theme_light"),
             "dark": t("theme_dark"),
-            "system": t("theme_system"),
         }
         theme_values = list(theme_labels.keys())
         theme_display = [theme_labels[v] for v in theme_values]
