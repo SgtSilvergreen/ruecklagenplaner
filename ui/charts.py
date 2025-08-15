@@ -1,18 +1,26 @@
 import plotly.express as px
+import plotly.io as pio
 import streamlit as st
-from i18n import MONTHS
+from i18n import MONTHS, get_text
 
-def saldo_chart(df_saldo, lang: str, currency: str, title: str):
+def saldo_chart(df_saldo, lang: str, currency: str, title: str, t=None):
     if df_saldo.empty:
-        st.info("Keine Daten für den gewählten Filter." if lang=="de" else "No data for the selected filter.")
+        t = lambda k: get_text(lang, k)
+        st.info(t("chart_no_data"))
         return
-    df_saldo["Monatsname"] = df_saldo["month"].apply(lambda x: f"{MONTHS[lang][int(x.split('-')[1])]} {x.split('-')[0]}")
+    def _month_label(x: str) -> str:
+        try:
+            y, m = x.split("-")[:2]
+            return f"{MONTHS[lang][int(m)]} {y}"
+        except Exception:
+            return x
+    df_saldo["Monatsname"] = df_saldo["month"].apply(_month_label)
     fig = px.line(
         df_saldo,
         x="month",
         y="saldo",
         markers=True,
-        labels={"saldo": f"Kontostand ({currency})" if lang == "de" else f"Balance ({currency})"},
+        labels={"saldo": t("chart_balance_label").format(currency=currency)},
         title=title,
         hover_name="Monatsname",
         hover_data={"saldo": ":.2f", "month": False},
@@ -28,3 +36,6 @@ def saldo_chart(df_saldo, lang: str, currency: str, title: str):
         xaxis=dict(autorange=True, fixedrange=False)
     )
     st.plotly_chart(fig, use_container_width=True, config={"scrollZoom": True})
+
+def set_plotly_theme(theme: str):
+    pio.templates.default = "plotly_dark" if theme == "dark" else "plotly"

@@ -9,7 +9,7 @@ from .crypto import make_salt, PBKDF2_ITERS_DEFAULT
 def _b64(x): return base64.b64encode(x).decode('ascii')
 def _b64d(s): return base64.b64decode(s.encode('ascii'))
 
-def make_hash(password: str, iterations: int = 200_000) -> str:
+def make_hash(password: str, iterations: int = PBKDF2_ITERS_DEFAULT) -> str:
     salt = secrets.token_bytes(16)
     dk = hashlib.pbkdf2_hmac('sha256', password.encode('utf-8'), salt, iterations)
     return f"pbkdf2${iterations}${_b64(salt)}${_b64(dk)}"

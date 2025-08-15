@@ -1,10 +1,11 @@
 # ui/dialogs.py
 from __future__ import annotations
-import json
-import uuid
+import json, streamlit as st
 from datetime import datetime
+
 from typing import Callable, Optional, Dict, List
-import streamlit as st
+from ui.theme import inject_theme_css, set_plotly_theme
+
 
 
 # =========================
@@ -92,6 +93,34 @@ def settings_page(
                     "currency": new_currency,
                 })
                 st.success(t("saved"))
+                st.rerun()
+
+        st.markdown("---")
+
+        cur_theme = prefs.get("theme", "light")  # default
+
+        theme_labels = {
+            "light": t("theme_light"),
+            "dark": t("theme_dark"),
+            "system": t("theme_system"),
+        }
+        theme_values = list(theme_labels.keys())
+        theme_display = [theme_labels[v] for v in theme_values]
+
+        try:
+            idx = theme_values.index(cur_theme)
+        except ValueError:
+            idx = 0
+
+        sel = st.selectbox(t("theme"), theme_display, index=idx, key="ui_theme")
+        new_theme = theme_values[theme_display.index(sel)]
+
+        if new_theme != cur_theme:
+            prefs_updater({"theme": new_theme})
+            inject_theme_css(new_theme)
+            set_plotly_theme(new_theme)      
+            st.toast(t("saved"), icon="✅")
+            st.rerun()    
 
         st.markdown("---")
 
@@ -160,7 +189,7 @@ def settings_page(
                     else:
                         st.error(t("check_inputs"))
         else:
-            st.info("Password change not available.")
+            st.info(t("password_change_unavailable"))
 
         _bottom_right_back(t, on_back, key="profil_bottom")
 
@@ -298,7 +327,7 @@ def _render_user_management(
         if wipe_btn:
             try:
                 if not confirm:
-                    raise ValueError("Bitte bestätigen.")
+                    raise ValueError(t("please_confirm"))
                 admin_wipe_user_data(sel_user)
                 st.success(t("wiped"))
             except Exception as ex:

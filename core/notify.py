@@ -1,8 +1,8 @@
-from datetime import datetime
+from datetime import datetime, date, timedelta
 from typing import List, Dict, Tuple
 from i18n import MONTHS
 from .calc import get_next_due_text
-from .cycles import safe_cycle_months
+from .cycles import safe_cycle_months, months_to_next_occurrence
 
 def _monthly_rate(entry: Dict, lang: str) -> float:
     amt = float(entry.get("amount", 0) or 0)
@@ -125,3 +125,44 @@ def ensure_monthly_notifications(load_entries_fn, load_notes_fn, save_notes_fn, 
                 })
     if new:
         save_notes_fn(notes + new)
+
+def evaluate_events(entries: list[dict], rules, lang: str, today: date | None = None) -> list[dict]:
+    """Create per-entry notification events based on upcoming dues and end dates."""
+    if today is None:
+        today = date.today()
+    out = []
+    for e in entries:
+        # Nächste Fälligkeit
+        if rules["due_upcoming"].enabled:
+            months = months_to_next_occurrence(e, lang)
+            # Einfacher Ansatz: wenn innerhalb lead_days
+            # (aus months grob in Tage umrechnen):
+            days = int(months * 30)  # pragmatisch
+            if 0 <= days <= rules["due_upcoming"].lead_days:
+                out.append({
+                    "type": "due_upcoming",
+                    "entry_id": e["id"],
+                    "title": t("notif_due_upcoming_title").format(name=e["name"]),
+                    "read": False,
+                    "ts": today.isoformat(),
+                })
+
+        # Enddatum
+        if rules["end_upcoming"].enabled and (end := e.get("end_date")):
+            try:
+                y, m = map(int, end.split("-")[:2])
+                # setze Enddatum auf den 1. des Monats
+                from datetime import date as _d
+                ed = _d(y, m, 1)
+                if 0 <= (ed - today).days <= rules["end_upcoming"].end_lead_days:
+                    out.append({
+                        "type": "end_upcoming",
+                        "entry_id": e["id"],
+                        "title": t("notif_end_upcoming_title").format(name=e["name"], end=end),
+                        "read": False,
+                        "ts": today.isoformat(),
+                    })
+            except Exception:
+                pass
+
+    return out
