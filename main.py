@@ -40,7 +40,7 @@ from ui.add_page import add_page
 from ui.charts import saldo_chart
 from ui.dialogs import notifications_page, settings_page
 from ui.edit_page import edit_page
-from ui.theme import inject_theme_css, set_plotly_theme
+from ui.theme import inject_mobile_only_css
 from ui.topbar import render_topbar
 
 # -------------------------------
@@ -281,10 +281,9 @@ TURNUS_LABELS = list(TURNUS_MAPPING.keys())
 if st.session_state.get("route") in ("add", "edit"):  # optional – nur auf Add/Edit
     inject_mobile_only_css()
 
-# Aufrufen, nachdem du prefs gelesen hast:
-theme = prefs.get("theme", "light")
-inject_theme_css(theme)
-set_plotly_theme(theme)
+# Use Streamlit's built-in theming (no custom CSS injection)
+# theme = prefs.get("theme", "light")
+# set_plotly_theme(theme)
 
 st.title(f"📊 {t('app_title')} · v{get_version()}")
 
