@@ -4,7 +4,6 @@ import json, streamlit as st
 from datetime import datetime
 
 from typing import Callable, Optional, Dict, List
-from ui.theme import inject_theme_css, set_plotly_theme
 
 
 
@@ -94,33 +93,6 @@ def settings_page(
                 })
                 st.success(t("saved"))
                 st.rerun()
-
-        st.markdown("---")
-
-        cur_theme = prefs.get("theme", "light")  # default
-
-        theme_labels = {
-            "light": t("theme_light"),
-            "dark": t("theme_dark"),
-            "system": t("theme_system"),
-        }
-        theme_values = list(theme_labels.keys())
-        theme_display = [theme_labels[v] for v in theme_values]
-
-        try:
-            idx = theme_values.index(cur_theme)
-        except ValueError:
-            idx = 0
-
-        sel = st.selectbox(t("theme"), theme_display, index=idx, key="ui_theme")
-        new_theme = theme_values[theme_display.index(sel)]
-
-        if new_theme != cur_theme:
-            prefs_updater({"theme": new_theme})
-            inject_theme_css(new_theme)
-            set_plotly_theme(new_theme)      
-            st.toast(t("saved"), icon="✅")
-            st.rerun()    
 
         st.markdown("---")
 
