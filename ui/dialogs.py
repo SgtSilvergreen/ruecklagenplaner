@@ -4,7 +4,7 @@ import json, streamlit as st
 from datetime import datetime
 
 from typing import Callable, Optional, Dict, List
-from ui.theme import set_plotly_theme
+from ui.theme import set_streamlit_theme
 
 
 
@@ -102,7 +102,6 @@ def settings_page(
         theme_labels = {
             "light": t("theme_light"),
             "dark": t("theme_dark"),
-            "system": t("theme_system"),
         }
         theme_values = list(theme_labels.keys())
         theme_display = [theme_labels[v] for v in theme_values]
@@ -117,9 +116,8 @@ def settings_page(
 
         if new_theme != cur_theme:
             prefs_updater({"theme": new_theme})
-            set_plotly_theme(new_theme)
             st.toast(t("saved"), icon="✅")
-            st.rerun()
+            set_streamlit_theme(new_theme)
 
         st.markdown("---")
 
