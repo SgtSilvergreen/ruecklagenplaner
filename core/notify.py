@@ -1,6 +1,6 @@
 from datetime import datetime, date, timedelta
 from typing import List, Dict, Tuple
-from i18n import MONTHS
+from i18n import MONTHS, get_text
 from .calc import get_next_due_text
 from .cycles import safe_cycle_months, months_to_next_occurrence
 
@@ -135,17 +135,18 @@ def evaluate_events(entries: list[dict], rules, lang: str, today: date | None = 
         # Nächste Fälligkeit
         if rules["due_upcoming"].enabled:
             months = months_to_next_occurrence(e, lang)
-            # Einfacher Ansatz: wenn innerhalb lead_days
-            # (aus months grob in Tage umrechnen):
-            days = int(months * 30)  # pragmatisch
-            if 0 <= days <= rules["due_upcoming"].lead_days:
-                out.append({
-                    "type": "due_upcoming",
-                    "entry_id": e["id"],
-                    "title": t("notif_due_upcoming_title").format(name=e["name"]),
-                    "read": False,
-                    "ts": today.isoformat(),
-                })
+            if months is not None:
+                # Einfacher Ansatz: wenn innerhalb lead_days
+                # (aus months grob in Tage umrechnen):
+                days = int(months * 30)  # pragmatisch
+                if 0 <= days <= rules["due_upcoming"].lead_days:
+                    out.append({
+                        "type": "due_upcoming",
+                        "entry_id": e["id"],
+                        "title": get_text(lang, "notif_due_upcoming_title").format(name=e["name"]),
+                        "read": False,
+                        "ts": today.isoformat(),
+                    })
 
         # Enddatum
         if rules["end_upcoming"].enabled and (end := e.get("end_date")):
@@ -158,7 +159,7 @@ def evaluate_events(entries: list[dict], rules, lang: str, today: date | None = 
                     out.append({
                         "type": "end_upcoming",
                         "entry_id": e["id"],
-                        "title": t("notif_end_upcoming_title").format(name=e["name"], end=end),
+                        "title": get_text(lang, "notif_end_upcoming_title").format(name=e["name"], end=end),
                         "read": False,
                         "ts": today.isoformat(),
                     })
