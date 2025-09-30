@@ -106,6 +106,8 @@ def calculate_monthly_saving_and_progress(entry: Dict, lang: str) -> Tuple[float
 
     # innerhalb des aktuellen Zyklus: wie viele Monate bereits vergangen?
     months_saved = (today.year - cycle_start.year) * 12 + (today.month - cycle_start.month)
+    if today >= cycle_start:
+        months_saved += 1
     months_saved = max(0, min(months_saved, months_total))
 
     rate = amount / months_total if months_total and months_total > 0 else 0.0
