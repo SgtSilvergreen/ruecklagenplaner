@@ -42,6 +42,30 @@ def test_progress_complete_month_before_due(monkeypatch):
     assert info is None
 
 
+def test_progress_stops_after_end(monkeypatch):
+    class _EndDateTime(datetime):
+        @classmethod
+        def now(cls):
+            return datetime(2025, 9, 1)
+
+    monkeypatch.setattr(calc, "datetime", _EndDateTime)
+
+    entry = {
+        "start_date": "2024-01",
+        "due_month": "03",
+        "cycle": "Jährlich",
+        "amount": 600,
+        "end_date": "2025-03",
+    }
+
+    rate, percent, saved, info = calc.calculate_monthly_saving_and_progress(entry, "de")
+
+    assert rate == pytest.approx(0.0)
+    assert percent == pytest.approx(0.0)
+    assert saved == pytest.approx(0.0)
+    assert info is None
+
+
 def test_due_month_sort_value_wraps_year():
     entries = [
         {"name": "A", "due_month": 11},
@@ -85,3 +109,42 @@ def test_due_month_sort_uses_next_due_date(monkeypatch):
     )
 
     assert [e["name"] for e in ordered] == ["Aktuell", "Später"]
+
+
+def test_saved_totals_match_history(monkeypatch):
+    class _HistoryDateTime(datetime):
+        @classmethod
+        def now(cls):
+            return datetime(2025, 9, 1)
+
+    monkeypatch.setattr(calc, "datetime", _HistoryDateTime)
+
+    entries = [
+        {
+            "id": 1,
+            "name": "Aktiv",
+            "start_date": "2024-01",
+            "due_month": "10",
+            "cycle": "Jährlich",
+            "amount": 1200,
+        },
+        {
+            "id": 2,
+            "name": "Beendet",
+            "start_date": "2024-01",
+            "due_month": "03",
+            "cycle": "Jährlich",
+            "amount": 600,
+            "end_date": "2025-03",
+        },
+    ]
+
+    total_saved = 0.0
+    for entry in entries:
+        _, _, saved, _ = calc.calculate_monthly_saving_and_progress(entry, "de")
+        total_saved += saved
+
+    df = calc.calculate_saldo_over_time(entries, "de", months_before=0, months_after=0)
+    saldo_today = df[df["month"] == "2025-09"]["saldo"].iloc[0]
+
+    assert total_saved == pytest.approx(saldo_today)

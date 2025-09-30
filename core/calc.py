@@ -7,6 +7,14 @@ import pandas as pd  # <- wichtig!
 from i18n import MONTHS, CYCLES
 
 
+def _month_add(base: datetime, months: int) -> datetime:
+    """Return the first day of the month that lies ``months`` after ``base``."""
+
+    year = base.year + (base.month - 1 + months) // 12
+    month = ((base.month - 1 + months) % 12) + 1
+    return datetime(year, month, 1)
+
+
 def _safe_cycle_months(entry: Dict, lang: str) -> int:
     label = (entry.get("cycle") or "").strip()
     # Mapping pro Sprache
@@ -69,51 +77,91 @@ def get_next_due_text(entry: Dict, lang: str) -> str:
 def calculate_monthly_saving_and_progress(entry: Dict, lang: str) -> Tuple[float, float, float, Optional[str]]:
     today = datetime.now().replace(day=1)
     contract_start = datetime.strptime(entry["start_date"], "%Y-%m")
+    contract_end = None
+    if entry.get("end_date"):
+        contract_end = datetime.strptime(entry["end_date"], "%Y-%m")
 
     try:
         due_month = int(entry["due_month"])
     except Exception:
         due_month = contract_start.month
 
-    cycle = _safe_cycle_months(entry, lang)
+    cycle_months = _safe_cycle_months(entry, lang)
     amount = float(entry.get("amount") or 0.0)
 
-    # Erste Fälligkeit (Monatsanfang)
+    # Noch nicht gestartet
+    if today < contract_start:
+        return 0.0, 0.0, 0.0, contract_start.strftime("%m.%Y")
+
+    # Ersten Fälligkeitstermin bestimmen
     first_due = datetime(year=contract_start.year, month=due_month, day=1)
     if first_due < contract_start:
         first_due = datetime(year=contract_start.year + 1, month=due_month, day=1)
 
-    # Vertrag noch nicht gestartet
-    if today < contract_start:
-        return 0.0, 0.0, 0.0, contract_start.strftime("%m.%Y")
-
-    # Liegt der Start im Fälligkeitsmonat, zählt dieser Monat direkt als Abbuchung
+    months_first_cycle = (first_due.year - contract_start.year) * 12 + (
+        first_due.month - contract_start.month
+    )
     if contract_start.year == first_due.year and contract_start.month == first_due.month:
-        months_total = cycle
-        cycle_start = contract_start
-        next_due = first_due
-    else:
-        # erster Teil-Zyklus
-        months_total = (first_due.year - contract_start.year) * 12 + (first_due.month - contract_start.month)
-        cycle_start = contract_start
-        next_due = first_due
+        months_first_cycle = cycle_months
+        first_due = _month_add(first_due, cycle_months)
 
-    # in den aktuellen Zyklus springen
-    while today >= next_due:
-        cycle_start = next_due
-        next_due = next_due + pd.DateOffset(months=cycle)
-        months_total = cycle
+    # Simulation bis zum relevanten Monat (Ende berücksichtigen)
+    effective_today = today
+    if contract_end and effective_today > contract_end:
+        effective_today = contract_end
 
-    # innerhalb des aktuellen Zyklus: wie viele Monate bereits vergangen?
-    months_saved = (today.year - cycle_start.year) * 12 + (today.month - cycle_start.month)
-    if today >= cycle_start:
-        months_saved += 1
-    months_saved = max(0, min(months_saved, months_total))
+    account = 0.0
+    current_rate = 0.0
 
-    rate = amount / months_total if months_total and months_total > 0 else 0.0
-    saved = rate * months_saved
+    next_due = first_due
+    cycle_start = contract_start
+    first_cycle = True
+
+    month = contract_start
+    while month <= effective_today:
+        if contract_end and month > contract_end:
+            break
+
+        if first_cycle:
+            if month < next_due:
+                account += amount / months_first_cycle if months_first_cycle > 0 else 0.0
+                current_rate = amount / months_first_cycle if months_first_cycle > 0 else 0.0
+            elif month == next_due:
+                account -= amount
+                next_due = _month_add(next_due, cycle_months)
+                first_cycle = False
+                cycle_start = month
+                if not contract_end or month < contract_end:
+                    rate = amount / cycle_months if cycle_months > 0 else amount
+                    account += rate
+                    current_rate = rate
+                else:
+                    current_rate = 0.0
+        else:
+            if month == next_due:
+                account -= amount
+                cycle_start = month
+                next_due = _month_add(next_due, cycle_months)
+                if not contract_end or month < contract_end:
+                    rate = amount / cycle_months if cycle_months > 0 else amount
+                    account += rate
+                    current_rate = rate
+                else:
+                    current_rate = 0.0
+            elif month > cycle_start and month < next_due:
+                account += current_rate
+
+        month = _month_add(month, 1)
+
+    saved = max(0.0, account)
     percent = (saved / amount) if amount > 0 else 0.0
-    return rate, percent, saved, None
+
+    if contract_end and today > contract_end:
+        # Vertrag ist beendet – abgelaufene Einträge zeigen keine Rate mehr an
+        return 0.0, 0.0, 0.0, None
+
+    rate = current_rate
+    return rate, min(1.0, percent), saved, None
 
 
 def calculate_saldo_over_time(entries: List[Dict], lang: str, months_before: int = 36, months_after: int = 36) -> pd.DataFrame:
@@ -189,13 +237,19 @@ def calculate_saldo_over_time(entries: List[Dict], lang: str, months_before: int
                     pe["next_due"] = next_due + pd.DateOffset(months=pe["cycle_months"])
                     pe["rate"] = pe["amount"] / pe["cycle_months"] if pe["cycle_months"] > 0 else pe["amount"]
                     pe["first_cycle"] = False
-                    monthly_plus += pe["rate"]
+                    if not pe["end"] or month < pe["end"]:
+                        monthly_plus += pe["rate"]
+                    else:
+                        pe["rate"] = 0.0
             else:
                 if (month.year, month.month) == (next_due.year, next_due.month):
                     monthly_minus += pe["amount"]
                     pe["next_due"] = next_due + pd.DateOffset(months=pe["cycle_months"])
-                    pe["rate"] = pe["amount"] / pe["cycle_months"] if pe["cycle_months"] > 0 else pe["amount"]
-                    monthly_plus += pe["rate"]
+                    if not pe["end"] or month < pe["end"]:
+                        pe["rate"] = pe["amount"] / pe["cycle_months"] if pe["cycle_months"] > 0 else pe["amount"]
+                        monthly_plus += pe["rate"]
+                    else:
+                        pe["rate"] = 0.0
                 elif month > pe["start"] and month < next_due:
                     monthly_plus += rate
 
