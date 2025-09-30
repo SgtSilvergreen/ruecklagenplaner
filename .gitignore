@@ -1,7 +1,5 @@
 # Runtime data (server state)
-data/*.json
-!data/README.md
-!data/.gitkeep
+data/
 
 # Python bytecode/caches
 __pycache__/
