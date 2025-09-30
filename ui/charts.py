@@ -1,13 +1,18 @@
 import plotly.express as px
 import plotly.io as pio
 import streamlit as st
+from typing import Callable, Optional
+
 from i18n import MONTHS, get_text
 
-def saldo_chart(df_saldo, lang: str, currency: str, title: str, t=None):
+
+def saldo_chart(df_saldo, lang: str, currency: str, title: str, t: Optional[Callable[[str], str]] = None):
     if df_saldo.empty:
-        t = lambda k: get_text(lang, k)
-        st.info(t("chart_no_data"))
+        fallback = (lambda k: get_text(lang, k))
+        st.info(fallback("chart_no_data"))
         return
+    if t is None:
+        t = lambda k: get_text(lang, k)
     def _month_label(x: str) -> str:
         try:
             y, m = x.split("-")[:2]

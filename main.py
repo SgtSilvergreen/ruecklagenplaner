@@ -242,6 +242,7 @@ def ensure_login():
                 mutated = True
                 # runtime params als bytes:
                 params = {"salt": _b64.b64decode(uenc["salt"]), "iters": uenc["iters"]}
+            assert params is not None
 
             # KEK (bytes) NUR Runtime
             kek = derive_fernet_key(pw, params["salt"], params["iters"])
@@ -371,12 +372,14 @@ elif route == "settings":
         if not cu: return False
         uu = find_user(cu["username"])
         if not uu: return False
-        if not (verify_password(old, uu.get("pw_hash","")) and pw1 and pw1 == pw2):
+        if not (verify_password(old, uu.get("pw_hash", "")) and pw1 and pw1 == pw2):
             return False
 
         # alten Key (aus Session), neuen Key (aus neuem Passwort) berechnen
         params = get_user_enc_params(cu["username"])
         old_fkey = st.session_state.get("enc_key")
+        if params is None:
+            return False
         new_fkey = derive_fernet_key(pw1, params["salt"], params["iters"])
 
         # Passwort-Hash aktualisieren
@@ -396,7 +399,7 @@ elif route == "settings":
         exp, imp,
         current_user(),
         _verify_self_password,
-        on_back=lambda: st.session_state.update(route="main"),
+        on_back=go_main,
         # Admin-Callbacks -> Tab „Benutzer“
         admin_add_user=add_user,
         admin_load_users=load_users,
@@ -497,7 +500,10 @@ with tab1:
             with b1:
                 if st.button(t("btn_edit"), key=f"edit_{e['id']}"):
                     st.session_state["edit_id"] = e["id"]
-                    st.session_state.update(open_edit=True, open_add=False, open_settings=False, open_notifications=False)
+                    st.session_state["open_edit"] = True
+                    st.session_state["open_add"] = False
+                    st.session_state["open_settings"] = False
+                    st.session_state["open_notifications"] = False
                     st.rerun()
             with b2:
                 if st.button(t("btn_delete"), key=f"delete_{e['id']}"):

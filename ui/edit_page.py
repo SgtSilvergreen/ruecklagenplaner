@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Callable, List, Dict, Optional
+from typing import Callable, List, Dict, Optional, cast
 import streamlit as st
 
 def edit_page(
@@ -32,7 +32,8 @@ def edit_page(
     except Exception:
         start_y, start_m = 2024, 1
 
-    name = st.text_input(t("f_name"), value=name0)
+    name_input = st.text_input(t("f_name"), value=name0)
+    name = str(name_input)
     amount = st.number_input(
         t("f_amount").replace("€", currency),
         min_value=0.01, value=amount0, step=0.01, format="%.2f",
@@ -57,7 +58,7 @@ def edit_page(
     col_cycle, col_custom = st.columns([1.5, 1.5])
     with col_cycle:
         idx = turnus_labels.index(cycle0) if cycle0 in turnus_labels else 0
-        selected_cycle = st.selectbox(t("f_cycle"), turnus_labels, index=idx, key=f"edit_cycle_{eid}")
+        selected_cycle = cast(str, st.selectbox(t("f_cycle"), turnus_labels, index=idx, key=f"edit_cycle_{eid}"))
     with col_custom:
         if _is_custom_label(selected_cycle, lang, t):
             st.number_input(
@@ -77,7 +78,7 @@ def edit_page(
         options_accounts = [custom_account_label] + [a for a in base_accounts if a != custom_account_label]
         # Vorbelegung: wenn konto0 in Optionen -> wählen, sonst Custom
         acc_index = options_accounts.index(konto0) if konto0 in options_accounts else 0
-        selected_account = st.selectbox(t("f_account"), options_accounts, index=acc_index, key=f"edit_account_{eid}")
+        selected_account = cast(str, st.selectbox(t("f_account"), options_accounts, index=acc_index, key=f"edit_account_{eid}"))
     with col_kto_cust:
         if selected_account == custom_account_label:
             st.text_input(t("f_account") + " " + t("new_value_suffix"), value=(konto0 if konto0 not in options_accounts else ""), key=f"edit_account_custom_{eid}")
@@ -89,7 +90,7 @@ def edit_page(
         base_categories = [c for c in (known_categories or []) if c]
         options_categories = [custom_category_label] + [c for c in base_categories if c != custom_category_label]
         cat_index = options_categories.index(category0) if category0 in options_categories else 0
-        selected_category = st.selectbox(t("f_category"), options_categories, index=cat_index, key=f"edit_category_{eid}")
+        selected_category = cast(str, st.selectbox(t("f_category"), options_categories, index=cat_index, key=f"edit_category_{eid}"))
     with col_cat_cust:
         if selected_category == custom_category_label:
             st.text_input(t("f_category") + " " + t("new_value_suffix"), value=(category0 if category0 not in options_categories else ""), key=f"edit_category_custom_{eid}")
@@ -182,8 +183,10 @@ def _bottom_right_back(t, on_back, key: str):
             on_back()
             st.rerun()
 
-def _is_custom_label(label: str, lang: str, t) -> bool:
+def _is_custom_label(label: Optional[str], lang: str, t) -> bool:
     # robust gegen i18n
+    if label is None:
+        return False
     try:
         return label == t("custom_cycle_label") or label in ("Benutzerdefiniert", "Custom")
     except Exception:

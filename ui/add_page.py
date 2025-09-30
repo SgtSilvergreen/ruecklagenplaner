@@ -143,18 +143,24 @@ def _bottom_right_back(t: Callable[[str], str], on_back: Callable[[], None], key
             st.rerun()
 
 
-def _is_custom_label(label: str, lang: str, t: Callable[[str], str]) -> bool:
+def _is_custom_label(label: Optional[str], lang: str, t: Callable[[str], str]) -> bool:
     """Return True if the cycle label represents a custom value."""
+    if label is None:
+        return False
     return label == t("custom_cycle_label") or label in ("Benutzerdefiniert", "Custom")
 
 
-def _is_custom_account(label: str, lang: str, t: Callable[[str], str]) -> bool:
+def _is_custom_account(label: Optional[str], lang: str, t: Callable[[str], str]) -> bool:
     """Return True if the account label represents a custom account."""
+    if label is None:
+        return False
     return label == t("custom_account_label") or label in ("Neues Konto", "New account")
 
 
-def _is_custom_category(label: str, lang: str, t: Callable[[str], str]) -> bool:
+def _is_custom_category(label: Optional[str], lang: str, t: Callable[[str], str]) -> bool:
     """Return True if the category label represents a custom category."""
+    if label is None:
+        return False
     return label == t("custom_category_label") or label in ("Neue Kategorie", "New category")
 
 

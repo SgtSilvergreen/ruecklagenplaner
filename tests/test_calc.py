@@ -16,7 +16,9 @@ class _FixedDateTime(datetime):
     _NOW = datetime(2025, 9, 1)
 
     @classmethod
-    def now(cls):
+    def now(cls, tz=None):
+        if tz is not None:
+            return cls._NOW.replace(tzinfo=tz)
         return cls._NOW
 
     @classmethod
@@ -45,8 +47,11 @@ def test_progress_complete_month_before_due(monkeypatch):
 def test_progress_stops_after_end(monkeypatch):
     class _EndDateTime(datetime):
         @classmethod
-        def now(cls):
-            return datetime(2025, 9, 1)
+        def now(cls, tz=None):
+            value = datetime(2025, 9, 1)
+            if tz is not None:
+                return value.replace(tzinfo=tz)
+            return value
 
     monkeypatch.setattr(calc, "datetime", _EndDateTime)
 
@@ -82,8 +87,11 @@ def test_due_month_sort_value_wraps_year():
 def test_due_month_sort_uses_next_due_date(monkeypatch):
     class _FakeDateTime(datetime):
         @classmethod
-        def now(cls):
-            return datetime(2025, 9, 15)
+        def now(cls, tz=None):
+            value = datetime(2025, 9, 15)
+            if tz is not None:
+                return value.replace(tzinfo=tz)
+            return value
 
     monkeypatch.setattr("core.calc.datetime", _FakeDateTime)
 
@@ -114,8 +122,11 @@ def test_due_month_sort_uses_next_due_date(monkeypatch):
 def test_saved_totals_match_history(monkeypatch):
     class _HistoryDateTime(datetime):
         @classmethod
-        def now(cls):
-            return datetime(2025, 9, 1)
+        def now(cls, tz=None):
+            value = datetime(2025, 9, 1)
+            if tz is not None:
+                return value.replace(tzinfo=tz)
+            return value
 
     monkeypatch.setattr(calc, "datetime", _HistoryDateTime)
 
@@ -145,7 +156,7 @@ def test_saved_totals_match_history(monkeypatch):
         total_saved += saved
 
     df = calc.calculate_saldo_over_time(entries, "de", months_before=0, months_after=0)
-    saldo_today = df[df["month"] == "2025-09"]["saldo"].iloc[0]
+    saldo_today = list(df.loc[df["month"] == "2025-09", "saldo"])[0]
 
     assert total_saved == pytest.approx(saldo_today)
 
@@ -153,8 +164,11 @@ def test_saved_totals_match_history(monkeypatch):
 def test_saldo_drops_closed_entry_balance(monkeypatch):
     class _HistoryDateTime(datetime):
         @classmethod
-        def now(cls):
-            return datetime(2025, 9, 1)
+        def now(cls, tz=None):
+            value = datetime(2025, 9, 1)
+            if tz is not None:
+                return value.replace(tzinfo=tz)
+            return value
 
     monkeypatch.setattr(calc, "datetime", _HistoryDateTime)
 
@@ -176,7 +190,7 @@ def test_saldo_drops_closed_entry_balance(monkeypatch):
     )
 
     df = calc.calculate_saldo_over_time(entries, "de", months_before=0, months_after=0)
-    saldo_today = df[df["month"] == "2025-09"]["saldo"].iloc[0]
+    saldo_today = list(df.loc[df["month"] == "2025-09", "saldo"])[0]
 
     assert total_saved == pytest.approx(0.0)
     assert saldo_today == pytest.approx(total_saved)
