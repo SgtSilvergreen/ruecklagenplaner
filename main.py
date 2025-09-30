@@ -36,7 +36,7 @@ from core.storage import (
     get_categories as storage_get_categories,
     ensure_streamlit_config,
 )
-from core.utils import due_month_sort_value
+from core.utils import due_month_sort_value, next_month_start
 
 from ui.add_page import add_page
 from ui.charts import saldo_chart
@@ -456,8 +456,8 @@ with tab1:
                 and _match(e.get("konto", ""), selected_konto)]
 
     if sort_option == t("sort_due_month"):
-        current_month = datetime.now().month
-        filtered.sort(key=lambda x: due_month_sort_value(x, current_month))
+        reference = next_month_start(datetime.now())
+        filtered.sort(key=lambda x: due_month_sort_value(x, reference, LANG))
     elif sort_option == t("sort_monthly"):
         filtered.sort(key=lambda x: calculate_monthly_saving_and_progress(x, LANG)[0], reverse=True)
     else:

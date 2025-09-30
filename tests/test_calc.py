@@ -49,6 +49,39 @@ def test_due_month_sort_value_wraps_year():
         {"name": "C", "due_month": 3},
     ]
 
-    ordered = sorted(entries, key=lambda e: due_month_sort_value(e, reference_month=9))
+    reference = datetime(2025, 10, 1)
+    ordered = sorted(entries, key=lambda e: due_month_sort_value(e, reference, "de"))
 
     assert [e["name"] for e in ordered] == ["B", "A", "C"]
+
+
+def test_due_month_sort_uses_next_due_date(monkeypatch):
+    class _FakeDateTime(datetime):
+        @classmethod
+        def now(cls):
+            return datetime(2025, 9, 15)
+
+    monkeypatch.setattr("core.calc.datetime", _FakeDateTime)
+
+    entry_current_year = {
+        "name": "Aktuell",
+        "due_month": 11,
+        "start_date": "2024-01",
+        "cycle": "Jährlich",
+        "amount": 100,
+    }
+    entry_next_year = {
+        "name": "Später",
+        "due_month": 11,
+        "start_date": "2025-12",
+        "cycle": "Jährlich",
+        "amount": 100,
+    }
+
+    reference = datetime(2025, 10, 1)
+    ordered = sorted(
+        [entry_next_year, entry_current_year],
+        key=lambda e: due_month_sort_value(e, reference, "de"),
+    )
+
+    assert [e["name"] for e in ordered] == ["Aktuell", "Später"]
