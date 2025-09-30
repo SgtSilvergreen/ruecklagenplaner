@@ -195,15 +195,40 @@ def settings_page(
     # --- Tab: Benutzer (nur Admin) ---
     if tab_users is not None:
         with tab_users:
-            _render_user_management(
-                t,
-                current_user_ctx,
-                lambda: st.session_state.update(route="main"),
-                admin_add_user, admin_load_users, admin_save_users,
-                admin_set_role, admin_set_active, admin_set_password,
-                admin_delete_user, admin_wipe_user_data
-            )
-            _bottom_right_back(t, on_back, key="usermanagement_bottom")
+            if not (
+                admin_add_user
+                and admin_load_users
+                and admin_save_users
+                and admin_set_role
+                and admin_set_active
+                and admin_set_password
+                and admin_delete_user
+                and admin_wipe_user_data
+            ):
+                st.error("Admin callbacks are not configured correctly.")
+            else:
+                assert admin_add_user is not None
+                assert admin_load_users is not None
+                assert admin_save_users is not None
+                assert admin_set_role is not None
+                assert admin_set_active is not None
+                assert admin_set_password is not None
+                assert admin_delete_user is not None
+                assert admin_wipe_user_data is not None
+                _render_user_management(
+                    t,
+                    current_user_ctx,
+                    lambda: st.session_state.update({"route": "main"}),
+                    admin_add_user,
+                    admin_load_users,
+                    admin_save_users,
+                    admin_set_role,
+                    admin_set_active,
+                    admin_set_password,
+                    admin_delete_user,
+                    admin_wipe_user_data,
+                )
+                _bottom_right_back(t, on_back, key="usermanagement_bottom")
 
 
 # ====================================
@@ -211,7 +236,7 @@ def settings_page(
 # ====================================
 def _render_user_management(
     t,
-    current_user_ctx: dict,
+    current_user_ctx: Optional[dict],
     on_back: Callable[[], None],
     admin_add_user: Callable[[str, str, str], None],
     admin_load_users: Callable[[], List[dict]],
@@ -220,8 +245,12 @@ def _render_user_management(
     admin_set_active: Callable[[str, bool], None],
     admin_set_password: Callable[[str, str], None],
     admin_delete_user: Callable[[str, str], None],
-    admin_wipe_user_data: Callable[[str], None],   
-    ):
+    admin_wipe_user_data: Callable[[str], None],
+    ) -> None:
+    if current_user_ctx is None:
+        st.warning(t("user_context_missing"))
+        _bottom_right_back(t, on_back, key="usermanagement_missing_ctx")
+        return
     # 1) Benutzer anlegen – ohne Expander
     _section_header_with_back(t("create_user"), t, on_back, key="create_user_top")
     with st.form("admin_create_user"):
@@ -316,11 +345,12 @@ def _render_user_management(
 
     st.divider()
     st.subheader(t("danger_zone"))
-    users_all = [u.get("username") for u in admin_load_users()]
+    users_all_raw = [u.get("username") for u in admin_load_users()]
+    users_all = [name for name in users_all_raw if isinstance(name, str)]
     me = current_user_ctx
-    default_idx = users_all.index(me["username"]) if (me and me["username"] in users_all) else 0
+    default_idx = users_all.index(me["username"]) if (me and isinstance(me.get("username"), str) and me["username"] in users_all) else 0
     with st.form("settings_wipe_admin"):
-        sel_user = st.selectbox(t("select_user"), users_all, index=default_idx)
+        sel_user = st.selectbox(t("select_user"), users_all, index=default_idx if users_all else 0)
         confirm = st.checkbox(t("confirm_wipe"))
         wipe_btn = st.form_submit_button(t("wipe_btn"))
         if wipe_btn:

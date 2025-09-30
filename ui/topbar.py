@@ -19,7 +19,10 @@ def render_topbar(t: Callable[[str], str], unread_count: int, username: str | No
         left, right = st.columns([7, 5])
         with left:
             if st.button(f"➕ {t('btn_add_entry')}", key="btn_add_top"):
-                st.session_state.update(open_add=True, open_notifications=False, open_settings=False, open_edit=False)
+                st.session_state["open_add"] = True
+                st.session_state["open_notifications"] = False
+                st.session_state["open_settings"] = False
+                st.session_state["open_edit"] = False
                 st.rerun()
         with right:
             c1, c2, c3 = st.columns(3, gap="small")
@@ -28,11 +31,17 @@ def render_topbar(t: Callable[[str], str], unread_count: int, username: str | No
                 if unread_count:
                     notif_label = f"{notif_label} ({unread_count})"
                 if st.button(f"🔔 {notif_label}", key="btn_notif_top", use_container_width=True):
-                    st.session_state.update(open_notifications=True, open_add=False, open_settings=False, open_edit=False)
+                    st.session_state["open_notifications"] = True
+                    st.session_state["open_add"] = False
+                    st.session_state["open_settings"] = False
+                    st.session_state["open_edit"] = False
                     st.rerun()
             with c2:
                 if st.button(f"⚙️ {t('settings')}", key="btn_settings_top", use_container_width=True):
-                    st.session_state.update(open_settings=True, open_notifications=False, open_add=False, open_edit=False)
+                    st.session_state["open_settings"] = True
+                    st.session_state["open_notifications"] = False
+                    st.session_state["open_add"] = False
+                    st.session_state["open_edit"] = False
                     st.rerun()
             with c3:
                 logout_label = f"🚪 {t('logout')}" + (f" ({username})" if username else "")

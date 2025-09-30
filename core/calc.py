@@ -1,7 +1,7 @@
 # core/calc.py
 from __future__ import annotations
 from datetime import datetime
-from typing import List, Dict, Tuple, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 import pandas as pd  # <- wichtig!
 from i18n import MONTHS, CYCLES
@@ -15,27 +15,25 @@ def _month_add(base: datetime, months: int) -> datetime:
     return datetime(year, month, 1)
 
 
-def _safe_cycle_months(entry: Dict, lang: str) -> int:
-    label = (entry.get("cycle") or "").strip()
-    # Mapping pro Sprache
-    lang_map = CYCLES.get(lang, CYCLES["de"])
-    if label in lang_map and lang_map[label] is not None:
+def _safe_cycle_months(entry: Dict[str, Any], lang: str) -> int:
+    label = str(entry.get("cycle") or "").strip()
+    lang_map: Dict[str, Optional[int]] = CYCLES.get(lang, CYCLES["de"])
+    value = lang_map.get(label)
+    if value is not None:
         try:
-            return int(lang_map[label])
-        except Exception:
+            return int(value)
+        except (TypeError, ValueError):
             pass
-    # Benutzerdefiniert / Custom
-    if label in lang_map and lang_map[label] is None:
+    if value is None and label in lang_map:
         try:
             cm = int(entry.get("custom_cycle") or 0)
             return cm if cm > 0 else 12
-        except Exception:
+        except (TypeError, ValueError):
             return 12
-    # Fallback
     return 12
 
 
-def get_next_due_date(entry: Dict, lang: str) -> Optional[datetime]:
+def get_next_due_date(entry: Dict[str, Any], lang: str) -> Optional[datetime]:
     today = datetime.now().replace(day=1)
     contract_start = datetime.strptime(entry["start_date"], "%Y-%m")
 
@@ -44,7 +42,7 @@ def get_next_due_date(entry: Dict, lang: str) -> Optional[datetime]:
     except Exception:
         due_month = contract_start.month
 
-    cycle_months = _safe_cycle_months(entry, lang)
+    cycle_months = int(_safe_cycle_months(entry, lang))
     end = datetime.strptime(entry["end_date"], "%Y-%m") if entry.get("end_date") else None
 
     first_due = datetime(year=contract_start.year, month=due_month, day=1)
@@ -74,7 +72,7 @@ def get_next_due_text(entry: Dict, lang: str) -> str:
     return f"{MONTHS[lang][nd.month]} {nd.year}"
 
 
-def calculate_monthly_saving_and_progress(entry: Dict, lang: str) -> Tuple[float, float, float, Optional[str]]:
+def calculate_monthly_saving_and_progress(entry: Dict[str, Any], lang: str) -> Tuple[float, float, float, Optional[str]]:
     today = datetime.now().replace(day=1)
     contract_start = datetime.strptime(entry["start_date"], "%Y-%m")
     contract_end = None
@@ -86,7 +84,7 @@ def calculate_monthly_saving_and_progress(entry: Dict, lang: str) -> Tuple[float
     except Exception:
         due_month = contract_start.month
 
-    cycle_months = _safe_cycle_months(entry, lang)
+    cycle_months = int(_safe_cycle_months(entry, lang))
     amount = float(entry.get("amount") or 0.0)
 
     # Noch nicht gestartet
@@ -164,9 +162,9 @@ def calculate_monthly_saving_and_progress(entry: Dict, lang: str) -> Tuple[float
     return rate, min(1.0, percent), saved, None
 
 
-def calculate_saldo_over_time(entries: List[Dict], lang: str, months_before: int = 36, months_after: int = 36) -> pd.DataFrame:
+def calculate_saldo_over_time(entries: List[Dict[str, Any]], lang: str, months_before: int = 36, months_after: int = 36) -> pd.DataFrame:
     if not entries:
-        return pd.DataFrame(columns=["month", "saldo"])
+        return pd.DataFrame({"month": [], "saldo": []})
 
     earliest_start = min(datetime.strptime(e["start_date"], "%Y-%m") for e in entries)
     today = datetime.now().replace(day=1)
@@ -187,7 +185,7 @@ def calculate_saldo_over_time(entries: List[Dict], lang: str, months_before: int
         end_dt = datetime.strptime(entry["end_date"], "%Y-%m") if entry.get("end_date") else None
         sim_end = end_dt or months[-1]
         amount = float(entry.get("amount") or 0.0)
-        cycle_months = _safe_cycle_months(entry, lang)
+        cycle_months = int(_safe_cycle_months(entry, lang))
 
         try:
             due_month = int(entry.get("due_month") or start_dt.month)
