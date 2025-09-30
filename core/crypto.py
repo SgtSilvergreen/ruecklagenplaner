@@ -33,13 +33,21 @@ def encrypt_bytes(plaintext: bytes, fkey: bytes) -> bytes:
 def decrypt_bytes(token: bytes, fkey: bytes) -> bytes:
     return make_fernet(fkey).decrypt(token)
 
-def wrap_key(data_key: bytes, kek: bytes) -> bytes:
+def wrap_key(data_key: bytes, kek: bytes) -> str:
+    """Encrypt ``data_key`` with ``kek`` and return a base64 string."""
+
     aes = AESGCM(kek[:32])
     nonce = os.urandom(12)
     ct = aes.encrypt(nonce, data_key, None)
-    return nonce + ct
+    return base64.b64encode(nonce + ct).decode("ascii")
 
-def unwrap_key(wrapped: bytes, kek: bytes) -> bytes:
+def unwrap_key(wrapped: bytes | str, kek: bytes) -> bytes:
+    """Decrypt a wrapped key that may be provided as bytes or base64 string."""
+
+    if isinstance(wrapped, str):
+        wrapped_bytes = base64.b64decode(wrapped.encode("ascii"))
+    else:
+        wrapped_bytes = wrapped
     aes = AESGCM(kek[:32])
-    nonce, ct = wrapped[:12], wrapped[12:]
+    nonce, ct = wrapped_bytes[:12], wrapped_bytes[12:]
     return aes.decrypt(nonce, ct, None)
