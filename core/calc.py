@@ -184,7 +184,8 @@ def calculate_saldo_over_time(entries: List[Dict], lang: str, months_before: int
     for entry in entries:
         eid = entry.get("id")
         start_dt = datetime.strptime(entry["start_date"], "%Y-%m")
-        end_dt = datetime.strptime(entry["end_date"], "%Y-%m") if entry.get("end_date") else months[-1]
+        end_dt = datetime.strptime(entry["end_date"], "%Y-%m") if entry.get("end_date") else None
+        sim_end = end_dt or months[-1]
         amount = float(entry.get("amount") or 0.0)
         cycle_months = _safe_cycle_months(entry, lang)
 
@@ -209,11 +210,14 @@ def calculate_saldo_over_time(entries: List[Dict], lang: str, months_before: int
             "id": eid,
             "start": start_dt,
             "end": end_dt,
+            "sim_end": sim_end,
             "amount": amount,
             "cycle_months": cycle_months,
             "next_due": first_due,
             "rate": initial_rate,
             "first_cycle": True,
+            "balance": 0.0,
+            "closed": False,
         })
 
     # Monat für Monat simulieren
@@ -223,7 +227,14 @@ def calculate_saldo_over_time(entries: List[Dict], lang: str, months_before: int
         monthly_minus = 0.0
 
         for pe in pre:
-            if month < pe["start"] or month > pe["end"]:
+            if pe["end"] and month > pe["end"]:
+                if not pe["closed"] and pe["balance"]:
+                    monthly_minus += pe["balance"]
+                    pe["balance"] = 0.0
+                pe["closed"] = True
+                continue
+
+            if month < pe["start"] or month > pe["sim_end"]:
                 continue
 
             next_due = pe["next_due"]
@@ -232,26 +243,32 @@ def calculate_saldo_over_time(entries: List[Dict], lang: str, months_before: int
             if pe["first_cycle"]:
                 if month < next_due:
                     monthly_plus += rate
+                    pe["balance"] += rate
                 elif (month.year, month.month) == (next_due.year, next_due.month):
                     monthly_minus += pe["amount"]
+                    pe["balance"] -= pe["amount"]
                     pe["next_due"] = next_due + pd.DateOffset(months=pe["cycle_months"])
                     pe["rate"] = pe["amount"] / pe["cycle_months"] if pe["cycle_months"] > 0 else pe["amount"]
                     pe["first_cycle"] = False
                     if not pe["end"] or month < pe["end"]:
                         monthly_plus += pe["rate"]
+                        pe["balance"] += pe["rate"]
                     else:
                         pe["rate"] = 0.0
             else:
                 if (month.year, month.month) == (next_due.year, next_due.month):
                     monthly_minus += pe["amount"]
+                    pe["balance"] -= pe["amount"]
                     pe["next_due"] = next_due + pd.DateOffset(months=pe["cycle_months"])
                     if not pe["end"] or month < pe["end"]:
                         pe["rate"] = pe["amount"] / pe["cycle_months"] if pe["cycle_months"] > 0 else pe["amount"]
                         monthly_plus += pe["rate"]
+                        pe["balance"] += pe["rate"]
                     else:
                         pe["rate"] = 0.0
                 elif month > pe["start"] and month < next_due:
                     monthly_plus += rate
+                    pe["balance"] += rate
 
         account += monthly_plus
         account -= monthly_minus

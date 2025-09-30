@@ -148,3 +148,35 @@ def test_saved_totals_match_history(monkeypatch):
     saldo_today = df[df["month"] == "2025-09"]["saldo"].iloc[0]
 
     assert total_saved == pytest.approx(saldo_today)
+
+
+def test_saldo_drops_closed_entry_balance(monkeypatch):
+    class _HistoryDateTime(datetime):
+        @classmethod
+        def now(cls):
+            return datetime(2025, 9, 1)
+
+    monkeypatch.setattr(calc, "datetime", _HistoryDateTime)
+
+    entries = [
+        {
+            "id": 1,
+            "name": "Ende vor Fälligkeit",
+            "start_date": "2025-01",
+            "due_month": "07",
+            "cycle": "Jährlich",
+            "amount": 1200,
+            "end_date": "2025-05",
+        }
+    ]
+
+    total_saved = sum(
+        calc.calculate_monthly_saving_and_progress(entry, "de")[2]
+        for entry in entries
+    )
+
+    df = calc.calculate_saldo_over_time(entries, "de", months_before=0, months_after=0)
+    saldo_today = df[df["month"] == "2025-09"]["saldo"].iloc[0]
+
+    assert total_saved == pytest.approx(0.0)
+    assert saldo_today == pytest.approx(total_saved)
